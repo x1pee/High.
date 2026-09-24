@@ -1,0 +1,11 @@
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import {createHash} from 'node:crypto';
+const root=path.resolve(import.meta.dirname,'..');
+const pkg=JSON.parse(await fs.readFile(path.join(root,'package.json')));
+const build=path.resolve(root,'../../work/build');
+const name=pkg.build?.nsis?.artifactName ?? `Vyshe-${pkg.version}-Windows.exe`;
+const data=await fs.readFile(path.join(build,name));
+const sha512=createHash('sha512').update(data).digest('base64');
+await fs.writeFile(path.join(build,'latest.yml'),`version: ${pkg.version}\nfiles:\n  - url: ${name}\n    sha512: ${sha512}\n    size: ${data.length}\npath: ${name}\nsha512: ${sha512}\nreleaseDate: '${new Date().toISOString()}'\n`);
+console.log(`Update metadata ready: ${name} (${data.length} bytes)`);

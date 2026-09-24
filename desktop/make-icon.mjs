@@ -1,0 +1,14 @@
+import sharp from "sharp";
+import fs from "node:fs/promises";
+const png = await sharp("assets/icon.svg").resize(256, 256).png().toBuffer();
+await fs.writeFile("assets/icon.png", png);
+const head = Buffer.alloc(22);
+head.writeUInt16LE(1, 2);
+head.writeUInt16LE(1, 4);
+head[6] = 0;
+head[7] = 0;
+head.writeUInt16LE(1, 10);
+head.writeUInt16LE(32, 12);
+head.writeUInt32LE(png.length, 14);
+head.writeUInt32LE(22, 18);
+await fs.writeFile("assets/icon.ico", Buffer.concat([head, png]));

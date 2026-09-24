@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ru" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src https://high-sync.high-sync-x1pee-2026.workers.dev; object-src 'none'; base-uri 'none'"
+    />
+    <title>High. — личная траектория</title>
+    <link rel="icon" href="../assets/icon.svg" />
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="terminal.css" />
+    <link rel="stylesheet" href="mobile.css" />
+  </head>
+  <body>
+    <div class="titlebar">
+      <span>High<span class="brand-dot">.</span> <i>личная траектория</i></span>
+      <div class="window-controls">
+        <button id="minimize" aria-label="Свернуть">−</button
+        ><button id="maximize" aria-label="Развернуть">□</button
+        ><button id="close" aria-label="Закрыть приложение">×</button>
+      </div>
+    </div>
+    <div id="app"></div>
+    <div id="toast" role="status" aria-live="polite"></div>
+    <div id="modal-root"></div>
+    <script type="module" src="app.mjs"></script>
+  </body>
+</html>

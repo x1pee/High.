@@ -1,0 +1,86 @@
+name: Tauri native builds
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v1.9.9.*"]
+jobs:
+  desktop:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            command: npm run pack
+            artifact: src-tauri/target/release/high.exe
+          - os: ubuntu-22.04
+            command: npm run pack:linux
+            artifact: src-tauri/target/release/bundle/
+          - os: macos-latest
+            command: npm run pack:mac
+            artifact: src-tauri/target/release/bundle/
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Linux prerequisites
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev libxdo-dev build-essential libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+      - run: npm ci
+      - run: npm test
+      - run: cargo test --manifest-path src-tauri/Cargo.toml --locked
+      - run: ${{ matrix.command }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: high-tauri-${{ matrix.os }}-${{ github.ref_name }}
+          path: ${{ matrix.artifact }}
+          if-no-files-found: error
+  android:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: android-actions/setup-android@v3
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+      - run: sdkmanager "ndk;27.2.12479018" "platforms;android-35" "build-tools;35.0.0"
+      - run: echo "NDK_HOME=$ANDROID_HOME/ndk/27.2.12479018" >> "$GITHUB_ENV"
+      - run: npm ci
+      - run: npm run android:init -- --ci
+      - run: npm run android:build -- --debug --target aarch64 --apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: high-tauri-android-debug-${{ github.ref_name }}
+          path: src-tauri/gen/android/app/build/outputs/apk/**/*.apk
+          if-no-files-found: error
+  ios-simulator:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-ios-sim,x86_64-apple-ios
+      - run: command -v pod || brew install cocoapods
+      - run: npm ci
+      - run: npm run ios:init -- --ci
+      - run: npm run ios:build -- --debug --target aarch64-sim
+      - uses: actions/upload-artifact@v4
+        with:
+          name: high-tauri-ios-simulator-${{ github.ref_name }}
+          path: src-tauri/gen/apple/build/
+          if-no-files-found: error

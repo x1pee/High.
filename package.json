@@ -1,0 +1,40 @@
+{
+  "name": "high",
+  "productName": "High",
+  "version": "1.9.22",
+  "appVersion": "1.9.9.18",
+  "description": "Личный дневник в ритме жизни",
+  "author": "x1pee",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "start": "node scripts/tauri.mjs dev",
+    "test": "node --test tests/*.test.mjs",
+    "pack": "node scripts/tauri.mjs build --no-bundle",
+    "pack:linux": "node scripts/tauri.mjs build --bundles appimage,deb",
+    "pack:mac": "node scripts/tauri.mjs build --bundles app,dmg",
+    "build:tauri": "node scripts/build-tauri.mjs",
+    "android:init": "node scripts/tauri.mjs android init",
+    "android:build": "node scripts/tauri.mjs android build",
+    "ios:init": "node scripts/tauri.mjs ios init",
+    "ios:build": "node scripts/tauri.mjs ios build",
+    "tauri": "node scripts/tauri.mjs",
+    "qa:tauri": "node tests/tauri-runtime.mjs",
+    "qa:tauri:layout": "node tests/tauri-ui-qa.mjs"
+  },
+  "devDependencies": {
+    "@noble/hashes": "^2.4.0",
+    "@tauri-apps/cli": "^2.11.5",
+    "esbuild": "^0.28.2",
+    "playwright": "^1.63.0",
+    "prettier": "^3.9.8",
+    "sharp": "^0.35.4"
+  },
+  "overrides": {
+    "uuid": "^11.1.1"
+  },
+  "dependencies": {
+    "@tauri-apps/plugin-process": "^2.3.1",
+    "@tauri-apps/plugin-updater": "^2.12.0"
+  }
+}

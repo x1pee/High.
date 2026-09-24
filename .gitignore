@@ -1,0 +1,15 @@
+node_modules/
+dist/
+mobile-dist/
+*.log
+High-*.exe
+tauri-dist/
+src-tauri/target/
+src-tauri/gen/
+# Previous Capacitor scaffolding; Tauri native projects are generated under src-tauri/gen/
+/android/
+/ios/
+/capacitor.config.json
+cloudflare/local-credentials.json
+cloudflare/.wrangler/
+.dev.vars

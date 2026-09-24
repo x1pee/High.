@@ -1,0 +1,10 @@
+import { spawn } from 'node:child_process';
+import path from 'node:path';
+import os from 'node:os';
+const root = path.resolve(import.meta.dirname, '..');
+const env = { ...process.env };
+const key = Object.keys(env).find(key => key.toLowerCase() === 'path') ?? 'PATH';
+env[key] = path.join(process.env.CARGO_HOME || path.join(os.homedir(), '.cargo'), 'bin') + path.delimiter + (env[key] || '');
+const child = spawn(process.execPath, [path.join(root, 'node_modules/@tauri-apps/cli/tauri.js'), ...process.argv.slice(2)], { cwd: root, env, stdio: 'inherit' });
+child.on('exit', code => process.exit(code ?? 1));
+child.on('error', error => { console.error(error.message); process.exit(1); });
