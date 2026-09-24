@@ -15,8 +15,28 @@ else {
   document.querySelectorAll('.titlebar > span').forEach(node => node.setAttribute('data-tauri-drag-region', ''));
 }
 const updateClient = createUpdateClient({
-  check: checkForUpdate,
-  relaunch,
+  check: async () => {
+    if (appPreferences.platform !== 'win32') return checkForUpdate();
+    const offer = await invoke('check_portable_update');
+    return offer ? {
+      version: offer.displayVersion || offer.version,
+      download: async onEvent => {
+        const unlisten = await window.__TAURI__.event.listen(
+          'portable-update-progress',
+          event => onEvent(event.payload),
+        );
+        try {
+          return await invoke('download_portable_update');
+        } finally {
+          unlisten();
+        }
+      },
+      install: async () => invoke('install_portable_update'),
+    } : null;
+  },
+  relaunch: async () => {
+    if (appPreferences.platform !== 'win32') await relaunch();
+  },
   getPreferences: () => appPreferences,
   version: '__APP_VERSION__',
   history: RELEASE_HISTORY,

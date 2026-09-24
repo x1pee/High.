@@ -1,4 +1,4 @@
-name: Windows updater release
+name: Windows portable release
 
 on:
   push:
@@ -32,21 +32,37 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           npm test
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          cargo test --manifest-path src-tauri/Cargo.toml --locked
+          cargo test --manifest-path src-tauri/Cargo.toml --locked --jobs 2
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - uses: tauri-apps/tauri-action@v1
+      - name: Build and sign portable Windows executable
+        shell: pwsh
+        working-directory: ${{ runner.temp }}/repo
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VYSHE_INSTALLED_BUILD: "1"
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-          VYSHE_INSTALLED_BUILD: "1"
+        run: |
+          npm run pack
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $version = node -p "require('./package.json').version"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if ($env:GITHUB_REF_NAME -ne "v$version") { throw 'Release tag does not match package.json version' }
+          $releaseDir = Join-Path $env:RUNNER_TEMP 'repo/release'
+          New-Item -ItemType Directory -Path $releaseDir -Force | Out-Null
+          $exe = Join-Path $releaseDir "High_${version}_x64.exe"
+          Copy-Item 'src-tauri/target/release/high.exe' $exe
+          if (!(Test-Path -LiteralPath $exe)) { throw 'Portable EXE was not built' }
+          if ((Get-Item -LiteralPath $exe).Length -gt 50MB) { throw 'Portable EXE exceeds the updater limit' }
+          npx tauri signer sign --app-version $version $exe
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/create-update-manifest.mjs "$exe.sig" (Join-Path $releaseDir 'latest.json')
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Get-ChildItem $releaseDir | Select-Object Name,Length
+      - uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          projectPath: ${{ runner.temp }}/repo
-          tagName: ${{ github.ref_name }}
-          releaseName: High ${{ github.ref_name }}
-          releaseBody: "Windows installer and signed updater package. See the in-app version history for changes."
-          releaseDraft: false
-          prerelease: false
-          args: --bundles nsis
-          uploadUpdaterJson: true
-          updaterJsonPreferNsis: true
+          name: High ${{ github.ref_name }}
+          body: "Portable Windows executable only. Download High_*.exe and replace your current file after closing the app. No installer, MSI or ZIP is included."
+          files: ${{ runner.temp }}/repo/release/*
+          fail_on_unmatched_files: true

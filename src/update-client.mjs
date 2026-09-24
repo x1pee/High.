@@ -25,7 +25,7 @@ export function createUpdateClient({
   };
   const unavailable = () => ({
     state: "unavailable",
-    message: "Обновления доступны в установленной версии приложения.",
+    message: "Обновления доступны в официальной Windows-версии приложения.",
   });
 
   function updateState() {

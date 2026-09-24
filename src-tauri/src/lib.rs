@@ -1,3 +1,5 @@
+#[cfg(not(mobile))]
+mod portable_update;
 mod profile;
 mod system;
 use tauri::{Emitter, Manager};
@@ -20,6 +22,31 @@ pub fn run() {
         ))
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init());
+    #[cfg(not(mobile))]
+    let builder = builder.invoke_handler(tauri::generate_handler![
+        profile::profile_io,
+        system::preferences,
+        system::configure,
+        system::window_action,
+        system::import_journal,
+        system::export_journal,
+        system::open_backups,
+        system::ui_ready,
+        portable_update::check_portable_update,
+        portable_update::download_portable_update,
+        portable_update::install_portable_update,
+    ]);
+    #[cfg(mobile)]
+    let builder = builder.invoke_handler(tauri::generate_handler![
+        profile::profile_io,
+        system::preferences,
+        system::configure,
+        system::window_action,
+        system::import_journal,
+        system::export_journal,
+        system::open_backups,
+        system::ui_ready,
+    ]);
     builder
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
@@ -28,6 +55,8 @@ pub fn run() {
             let state = profile::Profile::init(app.handle())?;
             let cache = state.root.join("webview-cache");
             app.manage(state);
+            #[cfg(not(mobile))]
+            app.manage(portable_update::PortableUpdater::default());
             app.manage(system::Lifecycle::default());
             let window =
                 tauri::WebviewWindowBuilder::from_config(app, &app.config().app.windows[0])?;
@@ -49,16 +78,6 @@ pub fn run() {
                 }
             }
         })
-        .invoke_handler(tauri::generate_handler![
-            profile::profile_io,
-            system::preferences,
-            system::configure,
-            system::window_action,
-            system::import_journal,
-            system::export_journal,
-            system::open_backups,
-            system::ui_ready,
-        ])
         .run(tauri::generate_context!())
         .expect("Unable to start High");
 }

@@ -1,8 +1,7 @@
 name: Tauri native builds
 on:
-  workflow_dispatch:
   push:
-    tags: ["v1.9.9.*"]
+    tags: ["v2.*"]
 jobs:
   desktop:
     strategy:
@@ -63,24 +62,4 @@ jobs:
         with:
           name: high-tauri-android-debug-${{ github.ref_name }}
           path: src-tauri/gen/android/app/build/outputs/apk/**/*.apk
-          if-no-files-found: error
-  ios-simulator:
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: npm
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: aarch64-apple-ios-sim,x86_64-apple-ios
-      - run: command -v pod || brew install cocoapods
-      - run: npm ci
-      - run: npm run ios:init -- --ci
-      - run: npm run ios:build -- --debug --target aarch64-sim
-      - uses: actions/upload-artifact@v4
-        with:
-          name: high-tauri-ios-simulator-${{ github.ref_name }}
-          path: src-tauri/gen/apple/build/
           if-no-files-found: error

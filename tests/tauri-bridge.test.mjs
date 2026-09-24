@@ -14,10 +14,23 @@ test('Tauri bridge preserves Electron journals, revisions, recovery and deleted 
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'vyshe-tauri-bridge-'));
   t.after(() => fs.rm(root, { recursive: true, force: true }));
   const calls = [];
+  const updateCalls = [];
   globalThis.document = { documentElement: { classList: { add() {} } }, querySelector: () => null, querySelectorAll: () => [] };
-  globalThis.window = { __TAURI__: { event: { listen: async () => {} }, core: { invoke: async (command, args) => {
+  globalThis.window = { __TAURI__: { event: { listen: async () => () => {} }, core: { invoke: async (command, args) => {
     if (command === 'ui_ready') return;
-    if (command === 'preferences') return { platform: 'win32', portable: true };
+    if (command === 'preferences') return { platform: 'win32', portable: false };
+    if (command === 'check_portable_update') {
+      updateCalls.push(command);
+      return { version: '1.9.24', displayVersion: '1.9.9.20', notes: 'Update test' };
+    }
+    if (command === 'download_portable_update') {
+      updateCalls.push(command);
+      return { size: 1234, version: '1.9.9.20' };
+    }
+    if (command === 'install_portable_update') {
+      updateCalls.push(command);
+      return;
+    }
     assert.equal(command, 'profile_io');
     calls.push(args);
     const file = path.join(root, args.file);
@@ -46,6 +59,10 @@ test('Tauri bridge preserves Electron journals, revisions, recovery and deleted 
   assert.equal(updateState.version, "1.9.9.19");
   assert.ok(updateState.history.length >= 8);
   assert.equal(updateState.history[0].version, "1.9.9.19");
+  assert.equal((await api.checkUpdate()).targetVersion, '1.9.9.20');
+  assert.equal((await api.downloadUpdate()).state, 'downloaded');
+  assert.equal((await api.installUpdate()).state, 'installed');
+  assert.deepEqual(updateCalls, ['check_portable_update', 'download_portable_update', 'install_portable_update']);
   assert.equal((await api.load()).journal, null);
   let original = await api.createGraph(createJournal());
   original = await api.save(upsertEvent(original, { date: '2026-09-24', time: '12:00', text: 'Проверка перехода', delta: 5 }), original.revision);

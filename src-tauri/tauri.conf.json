@@ -30,7 +30,8 @@
   "plugins": {
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDNDOUYwOEE3RTA4MTIzMDgKUldRSUk0SGdwd2lmUFBBZ1pQUUltejlGOUJ5bjMyeFJGV3JOb3p5NjFkeXVIVjhRVGNSTldJaDMK",
-      "endpoints": ["https://github.com/x1pee/High./releases/latest/download/latest.json"]
+      "endpoints": ["https://github.com/x1pee/High./releases/latest/download/latest.json"],
+      "requireSignedVersion": true
     }
   },
   "bundle": {
