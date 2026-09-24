@@ -49,6 +49,11 @@ const visible = () => page.evaluate(() => window.__TAURI__.window.getCurrentWind
 try {
   await launch();
   assert.equal(await visible(), true, 'manual launch opens full window even with tray preference');
+  const appPreferences = await page.evaluate(() => window.desktop.preferences());
+  assert.equal(appPreferences.portable, false, 'installed builds must expose the updater');
+  const updateState = await page.evaluate(() => window.desktop.updateState());
+  assert.equal(updateState.state, 'idle');
+  assert.equal(updateState.version, '1.9.9.18');
   await page.locator('#start-form [type=submit]').click();
   await page.locator('#coin-form [type=submit]').click();
   await page.waitForSelector('dialog', { state: 'detached' });
