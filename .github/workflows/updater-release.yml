@@ -10,22 +10,30 @@ permissions:
 jobs:
   release:
     runs-on: windows-latest
-    defaults:
-      run:
-        working-directory: repo
     steps:
-      - uses: actions/checkout@v4
-        with:
-          path: repo
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: npm
-          cache-dependency-path: repo/package-lock.json
       - uses: dtolnay/rust-toolchain@stable
-      - run: npm ci
-      - run: npm test
-      - run: cargo test --manifest-path src-tauri/Cargo.toml --locked
+      - name: Fetch tagged source and run checks
+        shell: pwsh
+        working-directory: ${{ runner.temp }}
+        run: |
+          git init repo
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          git -C repo remote add origin "https://github.com/${{ github.repository }}.git"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          git -C repo fetch --depth 1 origin "$env:GITHUB_SHA"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          git -C repo checkout --detach FETCH_HEAD
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Set-Location repo
+          npm ci
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm test
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cargo test --manifest-path src-tauri/Cargo.toml --locked
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -33,7 +41,7 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           VYSHE_INSTALLED_BUILD: "1"
         with:
-          projectPath: repo
+          projectPath: ${{ runner.temp }}/repo
           tagName: ${{ github.ref_name }}
           releaseName: High ${{ github.ref_name }}
           releaseBody: "Windows installer and signed updater package. See the in-app version history for changes."
