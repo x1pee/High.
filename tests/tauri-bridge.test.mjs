@@ -43,9 +43,9 @@ test('Tauri bridge preserves Electron journals, revisions, recovery and deleted 
   let api = await start();
   assert.equal(api.updateState() instanceof Promise, true);
   const updateState = await api.updateState();
-  assert.equal(updateState.version, "1.9.9.18");
+  assert.equal(updateState.version, "1.9.9.19");
   assert.ok(updateState.history.length >= 8);
-  assert.equal(updateState.history[0].version, "1.9.9.18");
+  assert.equal(updateState.history[0].version, "1.9.9.19");
   assert.equal((await api.load()).journal, null);
   let original = await api.createGraph(createJournal());
   original = await api.save(upsertEvent(original, { date: '2026-09-24', time: '12:00', text: 'Проверка перехода', delta: 5 }), original.revision);

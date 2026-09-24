@@ -1,6 +1,6 @@
 [package]
 name = "high"
-version = "1.9.22"
+version = "1.9.23"
 description = "Offline life journal"
 edition = "2021"
 

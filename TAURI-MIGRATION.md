@@ -1,4 +1,4 @@
-# Tauri 2 и переносимые сборки · 1.9.9.18
+# Tauri 2 и переносимые сборки · 1.9.9.19
 
 Основная оболочка приложения — Tauri 2. Windows рисует интерфейс в системном WebView2, macOS/iOS используют WebKit, Linux — WebKitGTK, Android — Android WebView. Windows EXE содержит приложение и web-ресурсы, а не Chromium и Node.js; это portable-файл без setup. Нужен WebView2 Runtime.
 
@@ -12,7 +12,7 @@ Windows по-прежнему использует `%APPDATA%\Vyshe`. Журна
 
 ## Версии и сборки
 
-Четырёхчастная версия продукта хранится в `package.json` в поле `appVersion`; она подставляется в интерфейс и bridge при сборке. Внутренняя SemVer для Cargo/Tauri — 1.9.22.
+Четырёхчастная версия продукта хранится в `package.json` в поле `appVersion`; она подставляется в интерфейс и bridge при сборке. Внутренняя SemVer для Cargo/Tauri — 1.9.23.
 
 После `npm ci`:
 
