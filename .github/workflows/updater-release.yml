@@ -10,12 +10,18 @@ permissions:
 jobs:
   release:
     runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: repo
     steps:
       - uses: actions/checkout@v4
+        with:
+          path: repo
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: npm
+          cache-dependency-path: repo/package-lock.json
       - uses: dtolnay/rust-toolchain@stable
       - run: npm ci
       - run: npm test
@@ -27,6 +33,7 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           VYSHE_INSTALLED_BUILD: "1"
         with:
+          projectPath: repo
           tagName: ${{ github.ref_name }}
           releaseName: High ${{ github.ref_name }}
           releaseBody: "Windows installer and signed updater package. See the in-app version history for changes."
