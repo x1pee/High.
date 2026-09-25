@@ -1,28 +1,26 @@
-# Сборки платформ и синхронизация · 1.9.9.13
+# Сборки платформ и синхронизация · актуально на 25.09.2026
 
-Проверка проекта: 24 сентября 2026. Основной desktop-клиент собран на Tauri 2. Linux, macOS и мобильные пакеты на этой машине не собирались и не проверялись на устройствах.
+Текущая версия приложения — 1.9.9.19; внутренний SemVer — 1.9.23. Опубликован Windows EXE без установщика. Сквозной переход `1.9.22 → 1.9.23` и сохранность дневника проверены. Linux, macOS и Android готовятся для версии 2.0 и ещё не проверены на устройствах.
 
 ## Сборки
 
-В `.github/workflows/tauri.yml` настроены ручной запуск и запуск по тегу `v1.9.9.*`. GitHub Actions использует отдельные Windows, Ubuntu и macOS runners; workflow проверяет JavaScript и Rust, собирает desktop-пакеты, Android debug APK и iOS Simulator. Артефакты пока прикрепляются к запуску Actions; workflow не публикует GitHub Release.
+`.github/workflows/updater-release.yml` запускается по тегам `v1.9.*`: проверяет JS и Rust, собирает Windows EXE, подписывает его и публикует EXE вместе с `.sig` и `latest.json`. В релизе нет установщика, MSI или ZIP.
 
-Перед запуском workflow исходники нужно поместить в GitHub-репозиторий и отправить туда тег. В текущей папке Git-репозиторий и remote не настроены.
+`.github/workflows/tauri.yml` запускается по тегам `v2.*` и прикладывает сборки к запуску GitHub Actions, а не к GitHub Release. Он содержит Windows, Linux, macOS и Android; iOS в текущий workflow не входит. Android-артефакт — debug APK, а Windows — отдельный EXE.
 
 | Платформа | Команда / результат | Что установить или учесть |
 | --- | --- | --- |
-| Windows | `npm ci`, `npm test`, `npm run pack`; собирает `src-tauri/target/release/high.exe` | Node.js 24, Rust stable/MSVC, Microsoft C++ Build Tools с Desktop development with C++, WebView2. В этой среде prerequisites уже установлены. |
+| Windows | `npm ci`, `npm test`, `npm run pack`; собирает `src-tauri/target/release/high.exe` | Node.js 24, Rust stable/MSVC, Microsoft C++ Build Tools с Desktop development with C++, WebView2. Официальный release EXE отдельно подписывает updater workflow. |
 | Linux | `npm run pack:linux`; AppImage и `.deb` | Linux-машина или Ubuntu runner; Rust stable, Node.js 24 и системные библиотеки WebKitGTK, GTK/appindicator, OpenSSL, librsvg, xdo и patchelf. Пакеты отличаются по дистрибутивам. |
-| macOS | `npm run pack:mac`; `.app` и `.dmg` | Mac и Xcode Command Line Tools; для iOS нужен полный Xcode. Публичное распространение приложения требует подписи и notarization. |
+| macOS | `npm run pack:mac`; `.app` и `.dmg` | Mac и Xcode Command Line Tools. Публичное распространение приложения требует подписи и notarization. |
 | Android | `npm run android:init -- --ci`, затем `npm run android:build -- --debug --target aarch64 --apk` | Android Studio, Android SDK Platform/Platform Tools/Build Tools/Command-line Tools, NDK side-by-side, Java 21 или JBR из Android Studio и Rust Android target. CI собирает debug APK; подпись магазина не настроена. |
-| iOS | `npm run ios:init -- --ci`, затем `npm run ios:build -- --debug --target aarch64-sim` | Mac, полный Xcode, CocoaPods и Rust targets для iOS Simulator. Сейчас проверяется только сборка симулятора; IPA для iPhone и App Store не собирался. Для публикации в App Store нужна программа Apple Developer за 99 USD в год; региональная цена может отличаться. |
+| iOS | Не входит в текущий план выпуска | Сборка и распространение iOS отдельно не настроены. |
 
 Точные Linux-зависимости для Ubuntu, переменные Android SDK/NDK и цели Rust перечислены в [официальных prerequisites Tauri](https://v2.tauri.app/start/prerequisites/). Для распространения desktop-сборок потребуется настроить подпись, особенно для macOS.
 
 ## Обновления приложения и синхронизация дневника
 
-Это две отдельные системы. GitHub Releases подходят для бинарных файлов приложения и release notes. Они не синхронизируют личный дневник. Текущий `src/tauri-bridge.mjs` намеренно возвращает состояние updater `unconfigured`; Tauri updater plugin, ключ подписи, endpoint и автоматическая публикация релизов ещё не настроены.
-
-Для updater потребуется включить Tauri updater plugin, создать пару ключей подписи, добавить только приватный ключ как GitHub Actions secret, оставить публичный ключ в приложении, включить сборку signed updater artifacts и настроить публикацию GitHub Releases. Потеря приватного ключа лишит уже установленные копии возможности получать следующие обновления, поэтому секрет нужно отдельно сохранить в безопасном резервном месте.
+Это две отдельные системы. GitHub Releases распространяют приложение и заметки выпуска, но не синхронизируют личный дневник. Подписанный updater настроен: приватный ключ используется только GitHub Actions через secret `TAURI_SIGNING_PRIVATE_KEY`, а приложение проверяет подпись перед заменой EXE. Сквозная проверка перехода `1.9.22 → 1.9.23` завершилась успешно.
 
 Синхронизация дневника работает через бесплатный Cloudflare Workers + D1. Worker и база развёрнуты, а клиент доступен в «Настройки → Мои данные»: устройство шифрует дневник AES-GCM до отправки, Worker хранит только шифротекст. Подключение устройств выполняется одним и тем же файлом сопряжения `cloudflare/local-credentials.json`; точные шаги и ограничения описаны в [cloudflare/README.md](cloudflare/README.md). Сейчас перенос запускается вручную, первая отправка требует подтверждения, а несовпадающие версии требуют выбора локальной или облачной копии. Секреты файла сопряжения сохраняются в локальном хранилище WebView, а не в системном хранилище ключей.
 

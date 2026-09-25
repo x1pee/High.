@@ -22,12 +22,12 @@ Windows по-прежнему использует `%APPDATA%\Vyshe`. Журна
 | Linux | Linux/Ubuntu, Rust, Node.js, WebKitGTK 4.1, AppIndicator и build tools | `npm run pack:linux` |
 | macOS | Mac, Rust и Xcode Command Line Tools | `npm run pack:mac` |
 | Android | Android Studio, Android SDK/NDK, Java 21, Rust Android target | `npm run android:init -- --ci`, затем `npm run android:build -- --debug --target aarch64 --apk` |
-| iPhone | Mac, полный Xcode, CocoaPods и Rust iOS targets | `npm run ios:init -- --ci`, затем `npm run ios:build -- --debug --target aarch64-sim` |
+| iPhone | Не входит в текущий план выпуска | Отдельная сборка для iOS не настроена. |
 
-Windows portable output: `src-tauri/target/release/high.exe`; он не использует updater. `.github/workflows/updater-release.yml` выпускает NSIS-установщик и подписанные артефакты для Tauri updater. Перед релизом секрет GitHub Actions должен содержать приватный ключ. Linux и macOS требуют сборки на соответствующих ОС; текущая проверка автообновления ограничена Windows. Платформенный workflow также создаёт Android debug APK и iOS Simulator, но не подписанную IPA для iPhone.
+Windows portable output: `src-tauri/target/release/high.exe`. Официальный EXE включает собственное подписанное обновление: приложение проверяет GitHub Release, скачивает EXE, сверяет подпись и заменяет себя только после подтверждения. `.github/workflows/updater-release.yml` публикует EXE, подпись и `latest.json`; установщик, MSI и ZIP не создаются. Сборки для Linux, macOS и Android пока относятся к плану версии 2.0.
 
 ## Текущий результат и границы
 
-На Windows тестируются JavaScript-модель и Tauri UI layout на синтетическом дневнике. Для updater написаны проверки состояния, подписи/загрузки, ошибки и явного подтверждения установки; полный тест на двух установленных версиях ещё предстоит после публикации подписанных релизов.
+Windows CI проверяет JavaScript и Rust. Сквозной тест обновления `1.9.22 → 1.9.23` прошёл на отдельной копии EXE: подпись и загрузка проверены, файл совпал с опубликованным по SHA-256, приложение перезапустилось, а тестовый дневник сохранился.
 
-Linux, macOS, Android и iOS на этой машине не собирались и на физических устройствах не проверялись. Синхронизация Cloudflare Worker + D1 уже подключена вручную; снимки шифруются на устройстве. Её transport и compare-and-swap проверяются тестами, но ключи сопряжения нужно хранить отдельно.
+Linux, macOS и Android ещё не собирались в целевом workflow и не проверялись на устройствах. Синхронизация Cloudflare Worker + D1 запускается вручную; снимки шифруются на устройстве. Её transport и compare-and-swap проверяются тестами, но ключи сопряжения нужно хранить отдельно.
