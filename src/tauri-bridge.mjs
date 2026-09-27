@@ -8,6 +8,7 @@ const invoke = (command, args) => window.__TAURI__.core.invoke(command, args)
   .catch(raw => { throw new Error(raw?.message ?? String(raw)); });
 const library = new libraryModule.GraphLibrary('', validateJournal);
 const initial = await library.init();
+let flushUi = async () => {};
 let appPreferences = await invoke('preferences');
 if (appPreferences.platform === 'mobile') document.documentElement.classList.add('mobile-runtime');
 else {
@@ -40,7 +41,7 @@ const updateClient = createUpdateClient({
   getPreferences: () => appPreferences,
   version: '__APP_VERSION__',
   history: RELEASE_HISTORY,
-  flush: async () => { await library.queue; },
+  flush: async () => { await flushUi(); await library.queue; },
 });
 let autoCheckTimer = null;
 const scheduleAutomaticCheck = () => {
@@ -54,6 +55,7 @@ const scheduleAutomaticCheck = () => {
 };
 scheduleAutomaticCheck();
 window.desktop = Object.freeze({
+  beforeClose: callback => { if (typeof callback === 'function') flushUi = callback; },
   load: async () => ({ ...initial, journal: library.current }),
   save: (data, revision, replace) => library.save(data, revision, replace),
   graphs: () => library.list(), createGraph: data => library.create(data),
@@ -81,7 +83,7 @@ window.desktop = Object.freeze({
   installUpdate: updateClient.installUpdate,
   minimize: () => invoke('window_action', { action: 'minimize' }),
   maximize: () => invoke('window_action', { action: 'maximize' }),
-  close: async () => { await library.queue; await invoke('window_action', { action: 'close' }); },
+  close: async () => { await flushUi(); await library.queue; await invoke('window_action', { action: 'close' }); },
 });
 await window.__TAURI__.event.listen('native-close-request', () => window.desktop.close());
 await invoke('ui_ready');

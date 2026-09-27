@@ -40,6 +40,7 @@ export function createUpdateClient({
 
   async function checkUpdate() {
     if (unsupported()) return updateState();
+    if (["downloaded", "installed"].includes(status?.state)) return updateState();
     if (checking) return checking;
     checking = (async () => {
       status = { state: "checking", message: "Проверяю обновления…" };
@@ -71,6 +72,7 @@ export function createUpdateClient({
 
   async function downloadUpdate() {
     if (unsupported()) return updateState();
+    if (["downloaded", "installed"].includes(status?.state)) return updateState();
     if (!pending) {
       const checked = await checkUpdate();
       if (!pending) return checked;
@@ -112,6 +114,7 @@ export function createUpdateClient({
         message: "Сначала проверь и загрузи обновление.",
       };
     try {
+      status = { state: "installing", targetVersion: pending.version, message: "Сохраняю дневник и устанавливаю обновление…" };
       await flush();
       await pending.install();
       await relaunch();
@@ -125,5 +128,18 @@ export function createUpdateClient({
     return updateState();
   }
 
-  return { updateState, checkUpdate, downloadUpdate, installUpdate };
+  // A double click or a background check must not replace the offer while its
+  // bytes are being downloaded or while the staged EXE is being installed.
+  let operation = null;
+  const exclusive = (work) => {
+    if (operation) return operation;
+    operation = Promise.resolve().then(work).finally(() => { operation = null; });
+    return operation;
+  };
+  return {
+    updateState,
+    checkUpdate: () => exclusive(checkUpdate),
+    downloadUpdate: () => exclusive(downloadUpdate),
+    installUpdate: () => exclusive(installUpdate),
+  };
 }

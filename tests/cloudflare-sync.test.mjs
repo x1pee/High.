@@ -4,7 +4,12 @@ import { DatabaseSync } from "node:sqlite";
 import { readFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import worker from "../cloudflare/worker.mjs";
-import { createJournal, validateJournal } from "../src/domain.mjs";
+import { createJournal, validateJournal, upsertEvent } from "../src/domain.mjs";
+import { createSyncClient, syncAction, assertSyncTarget } from "../src/sync-client.mjs";
+import libraryModule from '../desktop/library.cjs';
+import { mkdtemp, rm } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
 import {
   createSyncCredentials,
   decryptSnapshot,
@@ -73,7 +78,7 @@ async function setup() {
       }),
       env,
     );
-  return { db, credentials, request };
+  return { db, credentials, request, env };
 }
 
 test("encrypted snapshot round-trips and rejects wrong keys or altered metadata", async () => {
@@ -190,4 +195,47 @@ test("API rejects malformed ciphertext and unapproved browser origins", async ()
     origin: "https://evil.example",
   });
   assert.equal(denied.status, 403);
+  const oversized = await request('/v1/graphs/g1', {
+    method: 'PUT', body: { ciphertext: 'A'.repeat(1_800_001) },
+  });
+  assert.equal(oversized.status, 413, 'body limit must hold without Content-Length');
+});
+
+test("two isolated journals exchange encrypted data, restart, and preserve both sides of a conflict", async t => {
+  const { db, credentials, env } = await setup();
+  t.after(() => db.db.close());
+  const root = await mkdtemp(path.join(os.tmpdir(), 'high-sync-audit-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const { GraphLibrary } = libraryModule;
+  const a = new GraphLibrary(path.join(root, 'device-a'), validateJournal);
+  let b = new GraphLibrary(path.join(root, 'device-b'), validateJournal);
+  await a.init(); await b.init();
+  await a.create(createJournal('Общий дневник', 100));
+  const oldB = await b.create(createJournal('Отдельный локальный', 100));
+  const clients = [0, 1].map(() => createSyncClient({
+    baseUrl: 'https://sync.example', validate: validateJournal,
+    fetchImpl: (url, options) => worker.fetch(new Request(url, options), env),
+  }));
+  const first = await a.save(upsertEvent(a.current, { date: '2026-09-27', time: '10:00', text: 'Запись A', delta: 2 }), a.current.revision);
+  await clients[0].writeJournal(credentials, first, 0);
+  const cloud = await clients[1].readJournal(credentials, first.id);
+  const localB = await b.save(cloud.journal, b.current.revision, true);
+  assert.ok((await b.list()).some(graph => graph.id === oldB.id), 'pairing preserves the previous graph');
+  const marker = { localRevision: localB.revision, serverRevision: cloud.revision };
+  b = new GraphLibrary(path.join(root, 'device-b'), validateJournal);
+  await b.init();
+  assert.equal(b.current.events[0].text, 'Запись A');
+  assert.equal(syncAction(b.current, cloud, marker), 'unchanged');
+  const before = structuredClone(b.current);
+  const offlineB = await b.save(upsertEvent(b.current, { date: '2026-09-27', time: '11:00', text: 'Запись B без сети', delta: 3 }), b.current.revision);
+  const newA = await a.save(upsertEvent(a.current, { date: '2026-09-27', time: '11:01', text: 'Новая запись A', delta: 4 }), a.current.revision);
+  await clients[0].writeJournal(credentials, newA, 1);
+  await assert.rejects(clients[1].writeJournal(credentials, offlineB, 1), error => error.status === 409);
+  const newer = await clients[1].readJournal(credentials, first.id);
+  assert.equal(syncAction(b.current, newer, marker), 'conflict');
+  assert.throws(() => assertSyncTarget(b.current, before), /изменился/);
+  assert.ok(b.current.events.some(event => event.text === 'Запись B без сети'));
+  assert.ok(newer.journal.events.some(event => event.text === 'Новая запись A'));
+  const row = db.db.prepare('SELECT ciphertext FROM sync_journals').get();
+  assert.equal(row.ciphertext.includes('Запись'), false);
 });

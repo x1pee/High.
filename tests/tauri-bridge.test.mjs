@@ -15,9 +15,11 @@ test('Tauri bridge preserves Electron journals, revisions, recovery and deleted 
   t.after(() => fs.rm(root, { recursive: true, force: true }));
   const calls = [];
   const updateCalls = [];
+  const windowActions = [];
   globalThis.document = { documentElement: { classList: { add() {} } }, querySelector: () => null, querySelectorAll: () => [] };
   globalThis.window = { __TAURI__: { event: { listen: async () => () => {} }, core: { invoke: async (command, args) => {
     if (command === 'ui_ready') return;
+    if (command === 'window_action') { windowActions.push(args.action); return; }
     if (command === 'preferences') return { platform: 'win32', portable: false };
     if (command === 'check_portable_update') {
       updateCalls.push(command);
@@ -84,6 +86,20 @@ test('Tauri bridge preserves Electron journals, revisions, recovery and deleted 
   assert.match((await api.load()).notice, /восстановлены/);
   assert.ok((await fs.readdir(root)).some(name => name.startsWith('damaged-')));
   assert.ok(calls.some(call => call.op === 'rename' && call.target === 'journal.json'));
+  let releaseUi;
+  const uiGate = new Promise(resolve => { releaseUi = resolve; });
+  api.beforeClose(async () => {
+    await uiGate;
+    const current = (await api.load()).journal;
+    await api.save(upsertEvent(current, { date: '2026-09-27', time: '12:00', text: 'Сохранить перед закрытием', delta: 1 }), current.revision);
+  });
+  const closing = api.close();
+  await Promise.resolve();
+  assert.deepEqual(windowActions, []);
+  releaseUi();
+  await closing;
+  assert.deepEqual(windowActions, ['close']);
+  assert.ok(JSON.parse(await fs.readFile(path.join(root, 'journal.json'), 'utf8')).events.some(event => event.text === 'Сохранить перед закрытием'));
   delete globalThis.window;
   delete globalThis.document;
 });

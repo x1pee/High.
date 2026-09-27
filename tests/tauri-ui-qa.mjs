@@ -90,7 +90,7 @@ try {
       assert.equal(await page.locator('[data-current-version]').innerText(), 'High. 1.9.9.19');
       assert.ok(await page.locator('#release-history .release-row').count() >= 8);
       assert.equal(await page.locator('#release-history .release-row').first().locator('b').innerText(), '1.9.9.19');
-      assert.equal(await page.locator('#release-history .release-row').nth(1).locator('b').innerText(), '1.9.9.17');
+      assert.equal(await page.locator('#release-history .release-row').nth(1).locator('b').innerText(), '1.9.9.18');
       await page.locator('dialog[open]').screenshot({path:path.join(shots, 'release-history.png')});
       await page.locator('dialog[open] .modal-close').click();
       await page.locator('#settings').click();
@@ -131,6 +131,15 @@ try {
       await page.setViewportSize({ width: 1440, height: 960 });
       await page.locator('#add-event').click();
       await page.locator('[name=text]').fill('Проверка нового движка');
+      await page.locator('[name=delta]').fill('');
+      await page.locator('[name=delta]').pressSequentially('-0.2');
+      assert.equal(await page.locator('[name=delta]').inputValue(), '-0.2');
+      assert.equal(await page.locator('[data-delta-sign="-1"]').getAttribute('aria-pressed'), 'true');
+      await page.locator('[name=delta]').fill('0');
+      await page.locator('[data-delta-sign="-1"]').click();
+      await page.locator('[name=delta]').press('End');
+      await page.locator('[name=delta]').pressSequentially('.2');
+      assert.equal(await page.locator('[name=delta]').inputValue(), '-0.2');
       await page.locator('[name=delta]').fill('7');
       await page.locator('#event-form [type=submit]').click();
       await page.waitForSelector('dialog', { state: 'detached' });

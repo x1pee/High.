@@ -5,6 +5,37 @@ import { createUpdateClient } from "../src/update-client.mjs";
 const history = [{ version: "1.9.9.17", notes: "Текущая версия" }];
 const installed = { platform: "win32", portable: false };
 
+test("concurrent clicks and checks cannot replace a downloaded offer or install twice", async () => {
+  let finishDownload, finishFlush;
+  let checks = 0, downloads = 0, installs = 0;
+  const client = createUpdateClient({
+    check: async () => { checks++; return {
+      version: '2.0.0',
+      download: () => { downloads++; return new Promise(resolve => { finishDownload = resolve; }); },
+      install: async () => { installs++; },
+    }; },
+    flush: () => new Promise(resolve => { finishFlush = resolve; }),
+    relaunch: async () => {}, getPreferences: () => installed, version: '1.9.23', history,
+  });
+  await client.checkUpdate();
+  const first = client.downloadUpdate();
+  await Promise.resolve();
+  const duplicate = client.downloadUpdate();
+  const background = client.checkUpdate();
+  finishDownload();
+  await Promise.all([first, duplicate, background]);
+  assert.equal(downloads, 1);
+  assert.equal(checks, 1);
+  assert.equal((await client.checkUpdate()).state, 'downloaded');
+  const install = client.installUpdate();
+  await Promise.resolve();
+  assert.equal(client.updateState().state, 'installing');
+  const secondInstall = client.installUpdate();
+  finishFlush();
+  await Promise.all([install, secondInstall]);
+  assert.equal(installs, 1);
+});
+
 test("update check reports current version and preserves release history", async () => {
   const client = createUpdateClient({
     check: async () => null,

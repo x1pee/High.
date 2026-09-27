@@ -69,8 +69,8 @@ export function bindSignedInput(form, { onInvalidText } = {}) {
     return parsed.value;
   };
   const set = (n) => {
-    sign = n < 0 ? -1 : 1;
-    input.value = String(n);
+    sign = n < 0 || Object.is(n, -0) ? -1 : 1;
+    input.value = Object.is(n, -0) ? "-0" : String(n);
     paint();
     input.dispatchEvent(new Event("input", { bubbles: true }));
   };
@@ -82,14 +82,9 @@ export function bindSignedInput(form, { onInvalidText } = {}) {
     }
     accepted = input.value;
     try {
-      const start = input.selectionStart;
-      const before = input.value;
-      const n = read();
-      if (n === 0 && /^[−-]/.test(before)) {
-        input.value = before.slice(1);
-        accepted = input.value;
-        input.setSelectionRange(Math.max(0, start - 1), Math.max(0, start - 1));
-      }
+      read();
+      // Keep '-0' while editing: removing its sign turns a typed -0.2 into +0.2.
+      if (/^[−-]/.test(input.value)) { sign = -1; paint(); }
     } catch {
       sign = /^[−-]/.test(input.value.trim()) ? -1 : 1;
       paint();

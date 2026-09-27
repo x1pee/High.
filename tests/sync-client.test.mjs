@@ -4,6 +4,8 @@ import { createJournal, validateJournal } from "../src/domain.mjs";
 import { createSyncCredentials } from "../src/sync-crypto.mjs";
 import {
   createSyncClient,
+  assertSyncTarget,
+  syncAction,
   getSyncMarker,
   loadSyncCredentials,
   parseSyncCredentials,
@@ -147,4 +149,44 @@ test("sync markers validate local and server revisions", () => {
   });
   storage.setItem("high.sync.marker.v1:account-1:graph-1", "{broken");
   assert.equal(getSyncMarker("account-1", "graph-1", storage), null);
+});
+
+test("restored local revisions do not create repeat conflicts and changed targets are protected", () => {
+  const local = { id: "graph", revision: 12 };
+  const remote = { revision: 4, journal: { id: "graph", revision: 3 } };
+  const marker = { localRevision: 12, serverRevision: 4 };
+  assert.equal(syncAction(local, remote, marker), "unchanged");
+  assert.equal(syncAction({ ...local, revision: 13 }, remote, marker), "upload");
+  assert.equal(syncAction(local, { ...remote, revision: 5 }, marker), "download");
+  assert.equal(syncAction({ ...local, revision: 13 }, { ...remote, revision: 5 }, marker), "conflict");
+  assert.equal(syncAction(local, remote, null), "conflict");
+  assert.doesNotThrow(() => assertSyncTarget(local, local));
+  assert.throws(() => assertSyncTarget({ ...local, revision: 13 }, local), /изменился/);
+  assert.throws(() => assertSyncTarget({ ...local, id: "other" }, local), /изменился/);
+  assert.throws(() => assertSyncTarget(null, local), /изменился/);
+});
+
+test("sync rejects false write acknowledgements and mismatched decrypted graph identity", async () => {
+  const credentials = createSyncCredentials();
+  const journal = createJournal();
+  const badAck = createSyncClient({ fetchImpl: async () => Response.json({ graphId: journal.id, revision: 99 }) });
+  await assert.rejects(badAck.writeJournal(credentials, journal, 0), /не подтвердил/);
+  const { encryptSnapshot } = await import('../src/sync-crypto.mjs');
+  const envelope = await encryptSnapshot({ ...journal, id: 'another-graph' }, credentials, journal.id);
+  const wrongGraph = createSyncClient({ fetchImpl: async () => Response.json({ graphId: journal.id, revision: 1, ...envelope }) });
+  await assert.rejects(wrongGraph.readJournal(credentials, journal.id), /ID облачного/);
+});
+
+test("a stalled sync request aborts and can be retried", async () => {
+  const credentials = createSyncCredentials();
+  let attempts = 0;
+  const client = createSyncClient({
+    timeoutMs: 10,
+    fetchImpl: async (_, { signal }) => {
+      if (++attempts > 1) return Response.json({ graphs: [] });
+      return new Promise((resolve, reject) => signal.addEventListener('abort', () => reject(new Error('aborted')), { once: true }));
+    },
+  });
+  await assert.rejects(client.listGraphs(credentials), /не ответил вовремя/);
+  assert.deepEqual(await client.listGraphs(credentials), []);
 });

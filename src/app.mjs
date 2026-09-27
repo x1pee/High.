@@ -81,6 +81,8 @@ import {
 } from "./themes.mjs";
 import {
   createSyncClient,
+  syncAction,
+  assertSyncTarget,
   getSyncMarker,
   loadSyncCredentials,
   parseSyncCredentials,
@@ -416,6 +418,10 @@ function closeModal() {
 let saveQueue = Promise.resolve(),
   pendingSaves = 0,
   contentEpoch = 0;
+api.beforeClose?.(async () => {
+  let pending;
+  do { pending = saveQueue; await pending; } while (pending !== saveQueue);
+});
 function commit(next, { replace = false } = {}) {
   const updater = typeof next === "function",
     epoch = contentEpoch;
@@ -3782,11 +3788,12 @@ function syncChoiceDialog(title, description, choices) {
   });
 }
 
-async function replaceWithRemote(remote, credentials) {
+async function replaceWithRemote(remote, credentials, snapshot) {
   await saveQueue;
-  const saved = await api.save(remote.journal, journal?.revision ?? 0, true);
-  journal = personal = saved;
-  contentEpoch++;
+  if (demo) throw new Error("Сначала вернись к личному графику");
+  assertSyncTarget(journal, snapshot);
+  await commit(remote.journal, { replace: true });
+  const saved = journal;
   end = selected = localDate();
   span = saved.settings.chartDensity ?? 45;
   setSyncMarker(credentials.accountId, saved.id, {
@@ -3832,11 +3839,11 @@ async function syncJournalNow() {
     }
 
     const marker = getSyncMarker(credentials.accountId, snapshot.id);
-    const localChanged = !marker || snapshot.revision !== marker.localRevision;
-    const remoteChanged = !marker || remote.revision !== marker.serverRevision;
-    if (marker && !localChanged && remoteChanged)
-      return replaceWithRemote(remote, credentials);
-    if (marker && localChanged && !remoteChanged)
+    const action = syncAction(snapshot, remote, marker);
+    if (action === "unchanged") return "Этот график уже синхронизирован.";
+    if (action === "download")
+      return replaceWithRemote(remote, credentials, snapshot);
+    if (action === "upload")
       return writeLocalToRemote(credentials, snapshot, remote.revision);
 
     const choice = await syncChoiceDialog(
@@ -3849,7 +3856,7 @@ async function syncJournalNow() {
     );
     if (choice === "local")
       return writeLocalToRemote(credentials, snapshot, remote.revision);
-    if (choice === "cloud") return replaceWithRemote(remote, credentials);
+    if (choice === "cloud") return replaceWithRemote(remote, credentials, snapshot);
     return "Синхронизация отменена.";
   }
 
@@ -3888,7 +3895,7 @@ async function syncJournalNow() {
   if (choice === "upload") return writeLocalToRemote(credentials, snapshot, 0);
   if (choice?.startsWith("cloud:")) {
     const remote = candidates.find((item) => `cloud:${item.graphId}` === choice);
-    if (remote) return replaceWithRemote(remote, credentials);
+    if (remote) return replaceWithRemote(remote, credentials, snapshot);
   }
   return "Синхронизация отменена.";
 }

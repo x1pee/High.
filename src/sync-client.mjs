@@ -6,6 +6,21 @@ export const SYNC_API_URL =
 const CREDENTIALS_KEY = "high.sync.credentials.v1";
 const MARKER_PREFIX = "high.sync.marker.v1:";
 
+export function syncAction(snapshot, remote, marker) {
+  if (!marker) return "conflict";
+  const localChanged = snapshot.revision !== marker.localRevision;
+  const remoteChanged = remote.revision !== marker.serverRevision;
+  if (!localChanged && !remoteChanged) return "unchanged";
+  if (!localChanged) return "download";
+  if (!remoteChanged) return "upload";
+  return "conflict";
+}
+
+export function assertSyncTarget(current, snapshot) {
+  if (!current || current.id !== snapshot.id || current.revision !== snapshot.revision)
+    throw new Error("График изменился во время синхронизации. Повтори синхронизацию, чтобы сохранить новые записи.");
+}
+
 export function parseSyncCredentials(value) {
   const credentials = typeof value === "string" ? JSON.parse(value) : value;
   if (
@@ -105,6 +120,7 @@ export function createSyncClient({
   baseUrl = SYNC_API_URL,
   fetchImpl = globalThis.fetch,
   validate = (journal) => journal,
+  timeoutMs = 30_000,
 } = {}) {
   if (typeof fetchImpl !== "function")
     throw new Error("Сетевые запросы недоступны в этой версии приложения");
@@ -112,9 +128,12 @@ export function createSyncClient({
   async function request(credentials, path, options = {}) {
     const valid = parseSyncCredentials(credentials);
     let response;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
       response = await fetchImpl(`${baseUrl}${path}`, {
         ...options,
+        signal: controller.signal,
         cache: "no-store",
         headers: {
           Authorization: `Bearer ${valid.token}`,
@@ -122,13 +141,20 @@ export function createSyncClient({
           ...options.headers,
         },
       });
-    } catch {
-      throw new Error("Нет соединения с сервером синхронизации.");
+      const result = await response.json();
+      if (!response.ok)
+        throw new SyncRequestError(response.status, result?.error, result ?? {});
+      if (!result || typeof result !== "object")
+        throw new Error("Сервер вернул некорректный ответ");
+      return result;
+    } catch (error) {
+      if (error instanceof SyncRequestError) throw error;
+      if (controller.signal.aborted)
+        throw new Error("Сервер синхронизации не ответил вовремя. Повтори попытку.");
+      throw new Error("Нет соединения с сервером синхронизации или получен некорректный ответ.");
+    } finally {
+      clearTimeout(timer);
     }
-    const result = await response.json().catch(() => ({}));
-    if (!response.ok)
-      throw new SyncRequestError(response.status, result.error, result);
-    return result;
   }
 
   return Object.freeze({
@@ -155,10 +181,13 @@ export function createSyncClient({
         result.revision < 1
       )
         throw new Error("Сервер вернул некорректную версию графика");
+      const journal = await decryptSnapshot(result, credentials, graphId, validate);
+      if (journal.id !== graphId)
+        throw new Error("ID облачного дневника не совпадает с его содержимым");
       return {
         revision: result.revision,
         updatedAt: result.updatedAt,
-        journal: await decryptSnapshot(result, credentials, graphId, validate),
+        journal,
       };
     },
 
@@ -166,7 +195,7 @@ export function createSyncClient({
       if (!Number.isSafeInteger(baseRevision) || baseRevision < 0)
         throw new Error("Некорректная версия облачной копии");
       const encrypted = await encryptSnapshot(journal, credentials, journal.id);
-      return request(
+      const result = await request(
         credentials,
         `/v1/graphs/${encodeURIComponent(journal.id)}`,
         {
@@ -174,6 +203,9 @@ export function createSyncClient({
           body: JSON.stringify({ baseRevision, ...encrypted }),
         },
       );
+      if (result.graphId !== journal.id || result.revision !== baseRevision + 1)
+        throw new Error("Сервер не подтвердил сохранение ожидаемой версии графика");
+      return result;
     },
   });
 }

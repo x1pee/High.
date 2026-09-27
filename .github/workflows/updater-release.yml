@@ -2,7 +2,7 @@ name: Windows portable release
 
 on:
   push:
-    tags: ["v1.9.*"]
+    tags: ["v1.9.*", "v2.*"]
 
 permissions:
   contents: write
@@ -11,23 +11,18 @@ jobs:
   release:
     runs-on: windows-latest
     steps:
+      - uses: actions/checkout@v4
+        with:
+          path: repo
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 24
       - uses: dtolnay/rust-toolchain@stable
-      - name: Fetch tagged source and run checks
+      - name: Check tagged source
         shell: pwsh
-        working-directory: ${{ runner.temp }}
+        working-directory: ${{ github.workspace }}/repo
         run: |
-          git init repo
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          git -C repo remote add origin "https://github.com/${{ github.repository }}.git"
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          git -C repo fetch --depth 1 origin "$env:GITHUB_SHA"
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          git -C repo checkout --detach FETCH_HEAD
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          Set-Location repo
           npm ci
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           npm test
@@ -36,7 +31,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Build and sign portable Windows executable
         shell: pwsh
-        working-directory: ${{ runner.temp }}/repo
+        working-directory: ${{ github.workspace }}/repo
         env:
           VYSHE_INSTALLED_BUILD: "1"
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
@@ -47,7 +42,7 @@ jobs:
           $version = node -p "require('./package.json').version"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           if ($env:GITHUB_REF_NAME -ne "v$version") { throw 'Release tag does not match package.json version' }
-          $releaseDir = Join-Path $env:RUNNER_TEMP 'repo/release'
+          $releaseDir = Join-Path $env:GITHUB_WORKSPACE 'repo/release'
           New-Item -ItemType Directory -Path $releaseDir -Force | Out-Null
           $exe = Join-Path $releaseDir "High_${version}_x64.exe"
           Copy-Item 'src-tauri/target/release/high.exe' $exe
@@ -64,5 +59,5 @@ jobs:
         with:
           name: High ${{ github.ref_name }}
           body: "Portable Windows executable only. Download High_*.exe and replace your current file after closing the app. No installer, MSI or ZIP is included."
-          files: ${{ runner.temp }}/repo/release/*
+          files: ${{ github.workspace }}/repo/release/*
           fail_on_unmatched_files: true

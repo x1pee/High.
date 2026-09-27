@@ -1,4 +1,25 @@
 const MAX_BODY_BYTES = 1_800_000;
+
+async function boundedBody(request) {
+  if (!request.body) return "";
+  const reader = request.body.getReader();
+  const decoder = new TextDecoder();
+  let size = 0, text = "";
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) return text + decoder.decode();
+      size += value.byteLength;
+      if (size > MAX_BODY_BYTES) {
+        await reader.cancel();
+        return null;
+      }
+      text += decoder.decode(value, { stream: true });
+    }
+  } finally {
+    reader.releaseLock();
+  }
+}
 const DEFAULT_ORIGINS = [
   "tauri://localhost",
   "http://tauri.localhost",
@@ -117,8 +138,8 @@ async function handle(request, env) {
   const declaredLength = Number(request.headers.get("Content-Length") || 0);
   if (declaredLength > MAX_BODY_BYTES)
     return json({ error: "payload_too_large" }, 413);
-  const raw = await request.text();
-  if (new TextEncoder().encode(raw).byteLength > MAX_BODY_BYTES)
+  const raw = await boundedBody(request);
+  if (raw === null)
     return json({ error: "payload_too_large" }, 413);
 
   let input;
