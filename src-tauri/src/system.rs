@@ -195,7 +195,9 @@ pub fn configure(
 pub fn window_action(app: tauri::AppHandle, action: String) -> Result<(), String> {
     let window = app.get_webview_window("main").ok_or("Окно недоступно")?;
     match action.as_str() {
+        #[cfg(desktop)]
         "minimize" => window.minimize(),
+        #[cfg(desktop)]
         "maximize" => {
             if window.is_maximized().map_err(|e| e.to_string())? {
                 window.unmaximize()
