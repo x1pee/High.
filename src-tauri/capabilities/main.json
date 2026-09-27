@@ -2,5 +2,5 @@
   "identifier": "main-window",
   "description": "Local journal UI; native commands restrict file access to its profile",
   "windows": ["main"],
-  "permissions": ["core:default", "core:window:allow-start-dragging", "updater:default", "process:allow-restart"]
+  "permissions": ["core:default"]
 }

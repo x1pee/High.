@@ -65,7 +65,15 @@ class GraphLibrary {
       const file = path.join(this.deleted, name);
       const stat = await fs.stat(file);
       if (now - stat.mtimeMs < 30 * 86400000) continue;
-      const raw = JSON.parse(await fs.readFile(file, "utf8"));
+      const contents = await fs.readFile(file, "utf8");
+      let raw;
+      try {
+        raw = JSON.parse(contents);
+      } catch (error) {
+        if (!(error instanceof SyntaxError)) throw error;
+        continue; // Preserve damaged recovery data without blocking healthy journals.
+      }
+      if (!raw || typeof raw.id !== "string" || !raw.id) continue;
       if (raw.expired) continue;
       // Retain a small tombstone so an old active backup cannot resurrect it.
       await fs.unlink(path.join(this.graphs, name)).catch((e) => {

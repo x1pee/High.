@@ -1,0 +1,7 @@
+{
+  "identifier": "desktop-window",
+  "description": "Desktop-only window controls and signed application updates",
+  "windows": ["main"],
+  "platforms": ["windows", "linux", "macOS"],
+  "permissions": ["core:window:allow-start-dragging", "updater:default", "process:allow-restart"]
+}
