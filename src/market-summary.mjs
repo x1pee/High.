@@ -1,3 +1,4 @@
+import { localizeUI, locale } from "./i18n.mjs";
 import { round } from './domain.mjs';
 import { eventVolume } from './chart-volume.mjs';
 import { minuteAt } from './timeline.mjs';
@@ -17,12 +18,12 @@ export function visibleSummary(bars) {
 }
 
 export function rangePeriod(minutes) {
-  if (!minutes) return 'видимый участок';
-  const number = n => Number(n.toFixed(1)).toLocaleString('ru-RU');
-  if (minutes < 60) return `${number(minutes)} мин`;
-  if (minutes <= 72 * 60) return `${number(minutes / 60)} ч`;
-  if (minutes % 43200 === 0) return `${number(minutes / 43200)} мес.`;
-  return `${number(minutes / 1440)} дн.`;
+  if (!minutes) return localizeUI('видимый участок');
+  const number = n => Number(n.toFixed(1)).toLocaleString(locale);
+  if (minutes < 60) return localizeUI`${number(minutes)} мин`;
+  if (minutes <= 72 * 60) return localizeUI`${number(minutes / 60)} ч`;
+  if (minutes % 43200 === 0) return localizeUI`${number(minutes / 43200)} мес.`;
+  return localizeUI`${number(minutes / 1440)} дн.`;
 }
 
 // Sum absolute calculated changes in the exact bars shown by the chart.

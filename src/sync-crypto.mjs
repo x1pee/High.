@@ -1,3 +1,4 @@
+import { localizeUI } from "./i18n.mjs";
 const encoder = new TextEncoder();
 const decoder = new TextDecoder("utf-8", { fatal: true });
 
@@ -7,7 +8,7 @@ const fromHex = (value, length, label) => {
     value.length !== length * 2 ||
     !/^[a-f0-9]+$/i.test(value)
   ) {
-    throw new Error(`Некорректный ${label}`);
+    throw new Error(localizeUI`Некорректный ${label}`);
   }
   return Uint8Array.from(value.match(/.{2}/g), (pair) =>
     Number.parseInt(pair, 16),
@@ -31,7 +32,7 @@ const fromBase64Url = (value) => {
     !/^[A-Za-z0-9_-]+$/.test(value) ||
     value.length % 4 === 1
   ) {
-    throw new Error("Некорректные зашифрованные данные");
+    throw new Error(localizeUI("Некорректные зашифрованные данные"));
   }
   const padded =
     value.replace(/-/g, "+").replace(/_/g, "/") +
@@ -41,7 +42,7 @@ const fromBase64Url = (value) => {
 
 const aad = (accountId, graphId) => {
   if (typeof accountId !== "string" || typeof graphId !== "string")
-    throw new Error("Не заданы аккаунт или график");
+    throw new Error(localizeUI("Не заданы аккаунт или график"));
   return encoder.encode(`HIGH-SYNC-v1\0${accountId}\0${graphId}`);
 };
 
@@ -73,10 +74,10 @@ export async function encryptSnapshot(
     !credentials ||
     credentials.version !== 1
   ) {
-    throw new Error("Некорректный дневник или ключ синхронизации");
+    throw new Error(localizeUI("Некорректный дневник или ключ синхронизации"));
   }
-  const keyBytes = fromHex(credentials.encryptionKey, 32, "ключ шифрования");
-  fromHex(credentials.token, 32, "токен синхронизации");
+  const keyBytes = fromHex(credentials.encryptionKey, 32, localizeUI("ключ шифрования"));
+  fromHex(credentials.token, 32, localizeUI("токен синхронизации"));
   const key = await crypto.subtle.importKey("raw", keyBytes, "AES-GCM", false, [
     "encrypt",
   ]);
@@ -110,13 +111,13 @@ export async function decryptSnapshot(
     !credentials ||
     credentials.version !== 1
   ) {
-    throw new Error("Неизвестный формат синхронизации");
+    throw new Error(localizeUI("Неизвестный формат синхронизации"));
   }
-  const keyBytes = fromHex(credentials.encryptionKey, 32, "ключ шифрования");
+  const keyBytes = fromHex(credentials.encryptionKey, 32, localizeUI("ключ шифрования"));
   const nonce = fromBase64Url(envelope.nonce);
   const ciphertext = fromBase64Url(envelope.ciphertext);
   if (nonce.length !== 12 || ciphertext.length < 16)
-    throw new Error("Некорректные зашифрованные данные");
+    throw new Error(localizeUI("Некорректные зашифрованные данные"));
   const key = await crypto.subtle.importKey("raw", keyBytes, "AES-GCM", false, [
     "decrypt",
   ]);

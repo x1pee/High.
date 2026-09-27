@@ -1,10 +1,11 @@
+import { localizeUI } from "./i18n.mjs";
 // Shared, DOM-free appearance contract for desktop and future mobile clients.
 export const PALETTES = ["blue", "amber", "green", "graphite", "custom"];
 export const COLOR_KEYS = ["accent", "up", "down", "value"];
 export const THEME_PRESETS = [
   {
     id: "night",
-    name: "Полночь",
+    name: localizeUI("Полночь"),
     theme: "dark",
     palette: "amber",
     swatch: "#f7a924",
@@ -12,7 +13,7 @@ export const THEME_PRESETS = [
   },
   {
     id: "terminal",
-    name: "Ледяная",
+    name: localizeUI("Ледяная"),
     theme: "dark",
     palette: "blue",
     swatch: "#85b5ff",
@@ -20,7 +21,7 @@ export const THEME_PRESETS = [
   },
   {
     id: "forest",
-    name: "Хвойная",
+    name: localizeUI("Хвойная"),
     theme: "dark",
     palette: "green",
     swatch: "#56d6a0",
@@ -28,7 +29,7 @@ export const THEME_PRESETS = [
   },
   {
     id: "graphite",
-    name: "Графит",
+    name: localizeUI("Графит"),
     theme: "dark",
     palette: "graphite",
     swatch: "#c5cbd5",
@@ -36,7 +37,7 @@ export const THEME_PRESETS = [
   },
   {
     id: "day",
-    name: "Светлая",
+    name: localizeUI("Светлая"),
     theme: "light",
     palette: "blue",
     swatch: "#3269c4",
@@ -46,14 +47,14 @@ export const THEME_PRESETS = [
 export function validateAppearance(a) {
   if (a === undefined) return;
   if (!a || typeof a !== "object" || !PALETTES.includes(a.palette))
-    throw new Error("Некорректная палитра оформления");
+    throw new Error(localizeUI("Некорректная палитра оформления"));
   if (
     a.chartColors !== undefined &&
     !["classic", "theme", "custom"].includes(a.chartColors)
   )
-    throw new Error("Некорректные цвета графика");
+    throw new Error(localizeUI("Некорректные цвета графика"));
   if (a.chartColors === "custom" && !a.colors)
-    throw new Error("Нужны цвета собственного графика");
+    throw new Error(localizeUI("Нужны цвета собственного графика"));
   if (a.colors !== undefined) {
     if (
       !a.colors ||
@@ -64,15 +65,15 @@ export function validateAppearance(a) {
           !/^#[0-9a-f]{6}$/i.test(a.colors[k]),
       )
     )
-      throw new Error("Цвета темы должны быть в формате #RRGGBB");
+      throw new Error(localizeUI("Цвета темы должны быть в формате #RRGGBB"));
   }
   if (a.palette === "custom" && !a.colors)
-    throw new Error("В собственной теме нужны четыре цвета");
+    throw new Error(localizeUI("В собственной теме нужны четыре цвета"));
   if (
     a.basePalette !== undefined &&
     !PALETTES.filter((p) => p !== "custom").includes(a.basePalette)
   )
-    throw new Error("Некорректная основа собственной темы");
+    throw new Error(localizeUI("Некорректная основа собственной темы"));
 }
 const dark = {
   bg: "#101114",

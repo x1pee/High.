@@ -66,6 +66,14 @@ button {
   font-size: 13px;
   border-radius: 4px;
 }
+.language-select {
+  width: auto;
+  max-width: 150px;
+  margin-top: 16px;
+  padding: 7px 12px;
+  font-size: 12px;
+}
+html[lang="en"] .chart-toolbar-actions .chart-subtitle { font-size: 10px; }
 .titlebar {
   height: 28px;
   padding-left: 17px;

@@ -1,3 +1,4 @@
+import { localizeUI } from "./i18n.mjs";
 import libraryModule from '../desktop/library.cjs';
 import { validateJournal } from './domain.mjs';
 import { RELEASE_HISTORY } from './release-history.mjs';
@@ -69,7 +70,7 @@ window.desktop = Object.freeze({
   },
   export: async () => {
     await library.queue;
-    if (!library.current) throw new Error('Сначала создай график');
+    if (!library.current) throw new Error(localizeUI('Сначала создай график'));
     return invoke('export_journal', { data: JSON.stringify(library.current, null, 2) });
   },
   import: async () => {

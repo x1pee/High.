@@ -1,3 +1,4 @@
+import { localizeUI } from "./i18n.mjs";
 import { validateCoin } from "./coin.mjs";
 import { validateAppearance } from "./themes.mjs";
 export const VERSION = 2;
@@ -28,7 +29,7 @@ export function validDate(v) {
   }
 }
 export function createJournal(
-  name = "Мой путь",
+  name = localizeUI("Мой путь"),
   initial = 1000,
   theme = "dark",
 ) {
@@ -56,7 +57,7 @@ const fail = (message) => {
 };
 const string = (x, max, label) =>
   (typeof x === "string" && x.length <= max) ||
-  fail(`Некорректное поле: ${label}`);
+  fail(localizeUI`Некорректное поле: ${label}`);
 const stamp = (v) =>
   typeof v === "string" &&
   /^\d{4}-\d\d-\d\dT/.test(v) &&
@@ -64,36 +65,36 @@ const stamp = (v) =>
 export function validateJournal(input) {
   const x = structuredClone(input);
   if (!x || ![1, VERSION].includes(x.schemaVersion))
-    fail("Неизвестная версия файла. Нужен файл «Выше» версии 1 или 2.");
+    fail(localizeUI("Неизвестная версия файла. Нужен файл «Выше» версии 1 или 2."));
   const legacy = x.schemaVersion === 1;
   x.schemaVersion = VERSION;
   string(x.id, 100, "id");
-  if (!x.id) fail("Отсутствует id");
+  if (!x.id) fail(localizeUI("Отсутствует id"));
   if (!Number.isSafeInteger(x.revision) || x.revision < 0)
-    fail("Некорректная ревизия");
+    fail(localizeUI("Некорректная ревизия"));
   if (!stamp(x.createdAt) || !stamp(x.updatedAt))
-    fail("Некорректные даты изменения");
+    fail(localizeUI("Некорректные даты изменения"));
   const s = x.settings;
-  if (!s || typeof s !== "object") fail("Отсутствуют настройки");
-  string(s.name, 80, "название");
-  if (!s.name.trim()) fail("Нужно название графика");
+  if (!s || typeof s !== "object") fail(localizeUI("Отсутствуют настройки"));
+  string(s.name, 80, localizeUI("название"));
+  if (!s.name.trim()) fail(localizeUI("Нужно название графика"));
   if (
     !Number.isFinite(s.initial) ||
     Math.abs(s.initial) > 1e9 ||
     round(s.initial) !== s.initial
   )
     fail(
-      "Начальное значение: до миллиарда, не более двух знаков после запятой",
+      localizeUI("Начальное значение: до миллиарда, не более двух знаков после запятой"),
     );
   if (
     !["dark", "light", "system"].includes(s.theme) ||
     typeof s.reducedMotion !== "boolean"
   )
-    fail("Некорректная тема");
+    fail(localizeUI("Некорректная тема"));
   validateAppearance(s.appearance);
   validateCoin(s.coin);
   if (s.rhythmStrength !== undefined && ![1, 4, 8].includes(s.rhythmStrength))
-    fail("Некорректный ритм");
+    fail(localizeUI("Некорректный ритм"));
   if (s.starter !== undefined) {
     const v = s.starter;
     if (
@@ -108,7 +109,7 @@ export function validateJournal(input) {
       v.at < -36816480 ||
       v.at > 121495680
     )
-      fail("Некорректный стартовый ритм");
+      fail(localizeUI("Некорректный стартовый ритм"));
   }
   for (const key of [
     "followEvent",
@@ -118,13 +119,13 @@ export function validateJournal(input) {
     "experimentalRandom",
   ])
     if (s[key] !== undefined && typeof s[key] !== "boolean")
-      fail("Некорректная настройка графика");
+      fail(localizeUI("Некорректная настройка графика"));
   if (s.eventOrder !== undefined && !["newest", "time"].includes(s.eventOrder))
-    fail("Некорректный порядок списка");
+    fail(localizeUI("Некорректный порядок списка"));
   if (s.chartDensity !== undefined && ![45, 90, 180].includes(s.chartDensity))
-    fail("Некорректная плотность графика");
+    fail(localizeUI("Некорректная плотность графика"));
   if (s.baselineLevel !== undefined && ![25, 50, 75].includes(s.baselineLevel))
-    fail("Некорректный уровень базовой линии");
+    fail(localizeUI("Некорректный уровень базовой линии"));
   if (s.favoriteDays !== undefined) {
     if (
       !Array.isArray(s.favoriteDays) ||
@@ -132,16 +133,16 @@ export function validateJournal(input) {
       s.favoriteDays.some((date) => !validDate(date)) ||
       new Set(s.favoriteDays).size !== s.favoriteDays.length
     )
-      fail("Некорректный список избранных дней");
+      fail(localizeUI("Некорректный список избранных дней"));
   }
   if (s.interpolate === undefined) s.interpolate = true;
   if (typeof s.interpolate !== "boolean")
-    fail("Некорректный режим интерполяции");
-  string(s.timeZone, 100, "часовой пояс");
+    fail(localizeUI("Некорректный режим интерполяции"));
+  string(s.timeZone, 100, localizeUI("часовой пояс"));
   try {
     new Intl.DateTimeFormat("ru", { timeZone: s.timeZone });
   } catch {
-    fail("Некорректный часовой пояс");
+    fail(localizeUI("Некорректный часовой пояс"));
   }
   if (
     !Array.isArray(x.events) ||
@@ -149,7 +150,7 @@ export function validateJournal(input) {
     x.events.length > 100000 ||
     x.days.length > 50000
   )
-    fail("Слишком много записей или неверный формат");
+    fail(localizeUI("Слишком много записей или неверный формат"));
   const ids = new Set(),
     dates = new Set(),
     orders = new Set();
@@ -158,20 +159,20 @@ export function validateJournal(input) {
     ["day", x.days],
   ])
     for (const r of records) {
-      if (!r || typeof r !== "object") fail("Повреждённая запись");
-      string(r.id, 100, "id записи");
-      if (!r.id || ids.has(r.id)) fail("Повторяющийся id");
+      if (!r || typeof r !== "object") fail(localizeUI("Повреждённая запись"));
+      string(r.id, 100, localizeUI("id записи"));
+      if (!r.id || ids.has(r.id)) fail(localizeUI("Повторяющийся id"));
       ids.add(r.id);
       if (!validDate(r.date) || !stamp(r.createdAt) || !stamp(r.updatedAt))
-        fail("Некорректная дата записи");
+        fail(localizeUI("Некорректная дата записи"));
       if (r.deletedAt !== null && !stamp(r.deletedAt))
-        fail("Некорректная отметка удаления");
+        fail(localizeUI("Некорректная отметка удаления"));
       if (kind === "event") {
         r.unit = legacy ? "points" : (r.unit ?? "points");
         if (!["points", "percent"].includes(r.unit))
-          fail("Некорректная единица изменения");
+          fail(localizeUI("Некорректная единица изменения"));
         if (r.test !== undefined && typeof r.test !== "boolean")
-          fail("Некорректная отметка тестовой записи");
+          fail(localizeUI("Некорректная отметка тестовой записи"));
         if (r.quickMove !== undefined) {
           const move = r.quickMove;
           if (
@@ -187,37 +188,37 @@ export function validateJournal(input) {
             move.variant < 0 ||
             move.variant > 9
           )
-            fail("Некорректное быстрое изменение графика");
+            fail(localizeUI("Некорректное быстрое изменение графика"));
           if (move.lastAt !== undefined && !stamp(move.lastAt))
-            fail("Некорректное время быстрого изменения графика");
+            fail(localizeUI("Некорректное время быстрого изменения графика"));
         }
-        string(r.text, 4000, "событие");
-        if (!r.text.trim()) fail("Событие не может быть пустым");
+        string(r.text, 4000, localizeUI("событие"));
+        if (!r.text.trim()) fail(localizeUI("Событие не может быть пустым"));
         if (r.time === undefined) r.time = "12:00";
         if (
           typeof r.time !== "string" ||
           !/^([01]\d|2[0-3]):[0-5]\d$/.test(r.time)
         )
-          fail("Некорректное время события");
+          fail(localizeUI("Некорректное время события"));
         if (
           !Number.isFinite(r.delta) ||
           Math.abs(r.delta) > 1e7 ||
           round(r.delta) !== r.delta
         )
           fail(
-            "Изменение: до 10 миллионов, не более двух знаков после запятой",
+            localizeUI("Изменение: до 10 миллионов, не более двух знаков после запятой"),
           );
         if (!Number.isSafeInteger(r.order) || r.order < 0)
-          fail("Некорректный порядок событий");
+          fail(localizeUI("Некорректный порядок событий"));
         const key = r.date + ":" + r.order;
         if (!r.deletedAt && orders.has(key))
-          fail("Повторяющийся порядок событий");
+          fail(localizeUI("Повторяющийся порядок событий"));
         if (!r.deletedAt) orders.add(key);
       } else {
-        string(r.title, 120, "название дня");
-        string(r.note, 12000, "описание дня");
+        string(r.title, 120, localizeUI("название дня"));
+        string(r.note, 12000, localizeUI("описание дня"));
         if (!r.deletedAt && dates.has(r.date))
-          fail("Повторяющаяся дата заметки");
+          fail(localizeUI("Повторяющаяся дата заметки"));
         if (!r.deletedAt) dates.add(r.date);
       }
     }
@@ -251,7 +252,7 @@ export function calculate(journal) {
         value = round(value + delta);
         if (!Number.isFinite(value) || Math.abs(value) > 1e15)
           fail(
-            "Итог графика слишком велик. Уменьши изменение или начальное значение.",
+            localizeUI("Итог графика слишком велик. Уменьши изменение или начальное значение."),
           );
         high = Math.max(high, value);
         low = Math.min(low, value);
@@ -379,7 +380,7 @@ export function widgetSnapshot(journal, date = localDate()) {
   };
 }
 export function demoJournal() {
-  let j = createJournal("Мой путь", 1000, "dark");
+  let j = createJournal(localizeUI("Мой путь"), 1000, "dark");
   const now = new Date(),
     nowMinute = now.getHours() * 60 + now.getMinutes();
   const demoTime = (part) => {
@@ -387,23 +388,23 @@ export function demoJournal() {
     return `${String(Math.floor(minute / 60)).padStart(2, "0")}:${String(minute % 60).padStart(2, "0")}`;
   };
   const titles = [
-    "Маленькая победа",
-    "Просто хороший день",
-    "День для себя",
-    "Новый ритм",
-    "Не всё по плану",
-    "Важный разговор",
-    "Снова в движении",
+    localizeUI("Маленькая победа"),
+    localizeUI("Просто хороший день"),
+    localizeUI("День для себя"),
+    localizeUI("Новый ритм"),
+    localizeUI("Не всё по плану"),
+    localizeUI("Важный разговор"),
+    localizeUI("Снова в движении"),
   ];
   const texts = [
-    "Прогулка без телефона",
-    "Закончил то, что откладывал",
-    "Устал и разрешил себе отдохнуть",
-    "Ужин с близким человеком",
-    "Хорошая тренировка",
-    "Не успел сделать запланированное",
-    "Прочитал несколько глав",
-    "Встретился с друзьями",
+    localizeUI("Прогулка без телефона"),
+    localizeUI("Закончил то, что откладывал"),
+    localizeUI("Устал и разрешил себе отдохнуть"),
+    localizeUI("Ужин с близким человеком"),
+    localizeUI("Хорошая тренировка"),
+    localizeUI("Не успел сделать запланированное"),
+    localizeUI("Прочитал несколько глав"),
+    localizeUI("Встретился с друзьями"),
   ];
   for (let i = 0; i < 75; i++) {
     if (i % 13 === 4) continue;
@@ -413,7 +414,7 @@ export function demoJournal() {
       date,
       time: i === 74 ? demoTime(0.4) : "10:20",
       text: down
-        ? "Тяжёлое утро, многое пошло не по плану"
+        ? localizeUI("Тяжёлое утро, многое пошло не по плану")
         : texts[[0, 1, 3, 4, 6, 7][i % 6]],
       delta: down ? -25 - (i % 12) : 12 + (i % 21),
     });
@@ -422,15 +423,15 @@ export function demoJournal() {
       time: i === 74 ? demoTime(0.8) : "18:45",
       text:
         i % 3 === 0
-          ? "Не успел сделать запланированное"
-          : "Вечерняя прогулка помогла выдохнуть",
+          ? localizeUI("Не успел сделать запланированное")
+          : localizeUI("Вечерняя прогулка помогла выдохнуть"),
       delta: i % 3 === 0 ? -15 : 8 + (i % 8),
     });
     if (i % 3 === 0 || i === 74)
       j = upsertDay(j, {
         date,
         title: titles[i % 7],
-        note: "Сегодня получилось остановиться и заметить, сколько хорошего есть вокруг. Не всё было идеально — и это нормально. Продолжаю свой путь.",
+        note: localizeUI("Сегодня получилось остановиться и заметить, сколько хорошего есть вокруг. Не всё было идеально — и это нормально. Продолжаю свой путь."),
       });
   }
   return j;

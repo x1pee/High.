@@ -25,6 +25,7 @@
   "devDependencies": {
     "@noble/hashes": "^2.4.0",
     "@tauri-apps/cli": "^2.11.5",
+    "acorn": "^8.18.0",
     "esbuild": "^0.28.2",
     "playwright": "^1.63.0",
     "prettier": "^3.9.8",

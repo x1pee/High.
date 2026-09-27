@@ -1,3 +1,4 @@
+import { localizeUI } from "./i18n.mjs";
 // Browser/Capacitor counterpart of the Electron preload. Data stays on this
 // device until the owner explicitly exports it; cross-device sync is future work.
 import { RELEASE_HISTORY } from "./release-history.mjs";
@@ -69,7 +70,7 @@ function chooseImport() {
       try {
         const file = input.files?.[0];
         if (!file) return resolve(null);
-        if (file.size > 32 * 1024 * 1024) throw new Error("Файл слишком большой");
+        if (file.size > 32 * 1024 * 1024) throw new Error(localizeUI("Файл слишком большой"));
         resolve(validateJournal(JSON.parse(await file.text())));
       } catch (error) { reject(error); }
     };
@@ -85,11 +86,11 @@ window.desktop = Object.freeze({
     const next = validateJournal(data);
     const previous = current(state);
     if (expected !== (previous?.revision ?? 0))
-      throw new Error("Данные уже изменились. Перезапусти приложение.");
+      throw new Error(localizeUI("Данные уже изменились. Перезапусти приложение."));
     if (state.deleted[next.id] && !replace)
-      throw new Error("Этот график удалён");
+      throw new Error(localizeUI("Этот график удалён"));
     if (!replace && previous && next.id !== previous.id)
-      throw new Error("График уже переключён");
+      throw new Error(localizeUI("График уже переключён"));
     if (!replace) assertPriceChange(previous, next);
     saveCopy(state, previous);
     const saved = revision(next, previous);
@@ -109,8 +110,8 @@ window.desktop = Object.freeze({
   createGraph: data => mutate(state => {
     const next = validateJournal(data);
     assertPriceChange(null, next);
-    if (state.graphs[next.id] || state.deleted[next.id]) throw new Error("График уже существует");
-    if (next.events.length || next.days.length) throw new Error("Новый график должен быть пустым");
+    if (state.graphs[next.id] || state.deleted[next.id]) throw new Error(localizeUI("График уже существует"));
+    if (next.events.length || next.days.length) throw new Error(localizeUI("Новый график должен быть пустым"));
     saveCopy(state, current(state));
     const saved = revision(next, current(state));
     state.graphs[saved.id] = saved;
@@ -118,7 +119,7 @@ window.desktop = Object.freeze({
     return saved;
   }),
   openGraph: id => mutate(state => {
-    if (state.deleted[id] || !state.graphs[id]) throw new Error("График недоступен");
+    if (state.deleted[id] || !state.graphs[id]) throw new Error(localizeUI("График недоступен"));
     if (id === state.currentId) return current(state);
     saveCopy(state, current(state));
     const saved = revision(state.graphs[id], current(state));
@@ -128,7 +129,7 @@ window.desktop = Object.freeze({
   }),
   deleteGraph: id => mutate(state => {
     const target = state.graphs[id];
-    if (!target || state.deleted[id]) throw new Error("График уже удалён");
+    if (!target || state.deleted[id]) throw new Error(localizeUI("График уже удалён"));
     state.deleted[id] = { journal: target, deletedAt: new Date().toISOString() };
     delete state.graphs[id];
     if (state.currentId === id)
@@ -147,7 +148,7 @@ window.desktop = Object.freeze({
   restoreGraph: id => mutate(state => {
     purge(state);
     const item = state.deleted[id];
-    if (!item?.journal || item.expired) throw new Error("Срок восстановления истёк");
+    if (!item?.journal || item.expired) throw new Error(localizeUI("Срок восстановления истёк"));
     saveCopy(state, current(state));
     const saved = revision(validateJournal(item.journal), current(state));
     state.graphs[id] = saved;
@@ -157,7 +158,7 @@ window.desktop = Object.freeze({
   }),
   export: async () => {
     const journal = current(await read());
-    if (!journal) throw new Error("Сначала создай график");
+    if (!journal) throw new Error(localizeUI("Сначала создай график"));
     const blob = new Blob([JSON.stringify(journal, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -168,11 +169,11 @@ window.desktop = Object.freeze({
     return true;
   },
   import: chooseImport,
-  backups: async () => "Резервные копии доступны через экспорт JSON. Сохрани файл вне приложения.",
+  backups: async () => localizeUI("Резервные копии доступны через экспорт JSON. Сохрани файл вне приложения."),
   preferences: async () => ({ initialized: true, autoStart: false, tray: false, autoUpdates: false, platform: "mobile" }),
-  configure: async () => { throw new Error("Эта настройка доступна только на компьютере"); },
-  updateState: async () => ({ state: "unconfigured", version: "__APP_VERSION__", message: "Мобильные обновления будут доступны через магазин приложений в версии 2.0.", history: RELEASE_HISTORY }),
-  checkUpdate: async () => ({ state: "unconfigured", version: "__APP_VERSION__", message: "Обновления будут доступны через магазин приложений в версии 2.0.", history: RELEASE_HISTORY }),
+  configure: async () => { throw new Error(localizeUI("Эта настройка доступна только на компьютере")); },
+  updateState: async () => ({ state: "unconfigured", version: "__APP_VERSION__", message: localizeUI("Мобильные обновления будут доступны через магазин приложений в версии 2.0."), history: RELEASE_HISTORY }),
+  checkUpdate: async () => ({ state: "unconfigured", version: "__APP_VERSION__", message: localizeUI("Обновления будут доступны через магазин приложений в версии 2.0."), history: RELEASE_HISTORY }),
   downloadUpdate: async () => {}, installUpdate: async () => {},
   minimize: () => {}, maximize: () => {}, close: () => {},
 });

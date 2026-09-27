@@ -1,8 +1,9 @@
+import { localizeUI } from "./i18n.mjs";
 import { percentage, round } from "./domain.mjs";
 
 function asUtcDate(date) {
   const value = new Date(`${date}T12:00:00Z`);
-  if (!Number.isFinite(value.getTime())) throw new Error("Некорректная дата");
+  if (!Number.isFinite(value.getTime())) throw new Error(localizeUI("Некорректная дата"));
   return value;
 }
 
@@ -26,12 +27,12 @@ export function periodBounds(anchor, period = "week") {
     date.setUTCDate(0);
     return { start, end: isoDate(date) };
   }
-  throw new Error("Неизвестный период");
+  throw new Error(localizeUI("Неизвестный период"));
 }
 
 export function shiftPeriodAnchor(anchor, period, amount) {
   const date = asUtcDate(anchor);
-  if (!Number.isInteger(amount)) throw new Error("Некорректный шаг периода");
+  if (!Number.isInteger(amount)) throw new Error(localizeUI("Некорректный шаг периода"));
   if (period === "week") {
     date.setUTCDate(date.getUTCDate() + amount * 7);
     return isoDate(date);
@@ -46,7 +47,7 @@ export function shiftPeriodAnchor(anchor, period, amount) {
     date.setUTCDate(Math.min(day, lastDay));
     return isoDate(date);
   }
-  throw new Error("Неизвестный период");
+  throw new Error(localizeUI("Неизвестный период"));
 }
 
 export function summarizePeriod(days, start, end) {

@@ -1,3 +1,4 @@
+import { localizeUI } from "./i18n.mjs";
 export function createUpdateClient({
   check,
   relaunch,
@@ -25,7 +26,7 @@ export function createUpdateClient({
   };
   const unavailable = () => ({
     state: "unavailable",
-    message: "Обновления доступны в официальной Windows-версии приложения.",
+    message: localizeUI("Обновления доступны в официальной Windows-версии приложения."),
   });
 
   function updateState() {
@@ -33,7 +34,7 @@ export function createUpdateClient({
     return snapshot(
       status ?? {
         state: "idle",
-        message: "Нажми «Проверить обновления», чтобы узнать о новой версии.",
+        message: localizeUI("Нажми «Проверить обновления», чтобы узнать о новой версии."),
       },
     );
   }
@@ -43,7 +44,7 @@ export function createUpdateClient({
     if (["downloaded", "installed"].includes(status?.state)) return updateState();
     if (checking) return checking;
     checking = (async () => {
-      status = { state: "checking", message: "Проверяю обновления…" };
+      status = { state: "checking", message: localizeUI("Проверяю обновления…") };
       pending = null;
       try {
         pending = await check();
@@ -51,16 +52,16 @@ export function createUpdateClient({
           ? {
               state: "available",
               targetVersion: pending.version,
-              message: `Доступна версия ${pending.version}. Сначала загрузка, установка начнётся только после подтверждения.`,
+              message: localizeUI`Доступна версия ${pending.version}. Сначала загрузка, установка начнётся только после подтверждения.`,
             }
           : {
               state: "current",
-              message: "У тебя установлена последняя версия.",
+              message: localizeUI("У тебя установлена последняя версия."),
             };
       } catch (error) {
         status = {
           state: "error",
-          message: `Не удалось проверить обновления: ${error?.message ?? String(error)}`,
+          message: localizeUI`Не удалось проверить обновления: ${error?.message ?? String(error)}`,
         };
       } finally {
         checking = null;
@@ -79,7 +80,7 @@ export function createUpdateClient({
     }
     downloaded = 0;
     total = 0;
-    status = { state: "downloading", message: "Загружаю обновление…" };
+    status = { state: "downloading", message: localizeUI("Загружаю обновление…") };
     try {
       await pending.download((event) => {
         if (event.event === "Started") {
@@ -87,19 +88,19 @@ export function createUpdateClient({
         } else if (event.event === "Progress") {
           downloaded += event.data.chunkLength;
           if (total > 0) {
-            status.message = `Загружено ${Math.min(100, Math.floor((downloaded / total) * 100))}%.`;
+            status.message = localizeUI`Загружено ${Math.min(100, Math.floor((downloaded / total) * 100))}%.`;
           }
         }
       });
       status = {
         state: "downloaded",
         targetVersion: pending.version,
-        message: `Версия ${pending.version} загружена и проверена. Подтверди перезапуск для установки.`,
+        message: localizeUI`Версия ${pending.version} загружена и проверена. Подтверди перезапуск для установки.`,
       };
     } catch (error) {
       status = {
         state: "error",
-        message: `Не удалось загрузить обновление: ${error?.message ?? String(error)}`,
+        message: localizeUI`Не удалось загрузить обновление: ${error?.message ?? String(error)}`,
       };
     }
     return updateState();
@@ -111,18 +112,18 @@ export function createUpdateClient({
       return {
         ...updateState(),
         state: "error",
-        message: "Сначала проверь и загрузи обновление.",
+        message: localizeUI("Сначала проверь и загрузи обновление."),
       };
     try {
-      status = { state: "installing", targetVersion: pending.version, message: "Сохраняю дневник и устанавливаю обновление…" };
+      status = { state: "installing", targetVersion: pending.version, message: localizeUI("Сохраняю дневник и устанавливаю обновление…") };
       await flush();
       await pending.install();
       await relaunch();
-      status = { state: "installed", message: "Перезапускаю приложение…" };
+      status = { state: "installed", message: localizeUI("Перезапускаю приложение…") };
     } catch (error) {
       status = {
         state: "error",
-        message: `Не удалось установить обновление: ${error?.message ?? String(error)}`,
+        message: localizeUI`Не удалось установить обновление: ${error?.message ?? String(error)}`,
       };
     }
     return updateState();

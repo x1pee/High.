@@ -99,9 +99,20 @@ try {
   await once(second, 'exit');
   await page.waitForFunction(async () => window.__TAURI__.window.getCurrentWindow().isVisible());
   assert.equal(await visible(), true, 'manual second launch opens existing tray instance');
+  await page.locator('#settings').click();
+  await page.locator('[name=language]').selectOption('en');
+  await page.locator('.settings-save [type=submit]').click();
+  await page.waitForFunction(() => document.documentElement.lang === 'en');
+  assert.equal(await page.locator('#add-event').innerText(), 'Add event');
+  assert.deepEqual((await page.evaluate(async () => (await window.desktop.load()).journal)).events, saved.events);
+  await page.screenshot({ path: path.join(shots, 'real-webview2-english.png'), animations: 'disabled' });
+  await stop();
+  await launch();
+  assert.equal(await page.evaluate(() => document.documentElement.lang), 'en');
+  assert.equal(await page.locator('#add-event').innerText(), 'Add event');
   assert.deepEqual(errors, []);
   await stop();
-  console.log(JSON.stringify({ result: 'PASS', exe, profile, checks: ['real WebView2 rendering', 'create and save', 'restart persistence', 'scoped native IO', 'manual visible', 'autostart tray', 'second launch visible', 'graceful close'] }, null, 2));
+  console.log(JSON.stringify({ result: 'PASS', exe, profile, checks: ['real WebView2 rendering', 'create and save', 'restart persistence', 'scoped native IO', 'manual visible', 'autostart tray', 'second launch visible', 'English language survives restart without changing entries', 'graceful close'] }, null, 2));
 } finally {
   if (child) child.kill();
   await browser?.close().catch(() => {});

@@ -1,3 +1,4 @@
+import { localizeUI } from "./i18n.mjs";
 import { minuteAt, dateAt } from "./timeline.mjs";
 import { clockLabel, minuteOf } from "./intraday.mjs";
 import { percentage, localDate, localTime } from "./domain.mjs";
@@ -11,7 +12,7 @@ export function createStarter() {
 }
 export const STARTER_CANDLE_MINUTES = 60;
 export const starterChoice = () =>
-  `<fieldset class="starter-choice"><legend>С чего начать</legend><label><input type="radio" name="starterMode" value="manual"><span><b>Чистый график</b><small>Только твои события, с первой записи.</small></span></label><label><input type="radio" name="starterMode" value="visual" checked><span><b>Стартовый ритм <small>(рекомендуется)</small></b><small>Начало графика построено за тебя. Эти свечи не меняют итог или историю.</small></span></label></fieldset>`;
+  localizeUI`<fieldset class="starter-choice"><legend>С чего начать</legend><label><input type="radio" name="starterMode" value="manual"><span><b>Чистый график</b><small>Только твои события, с первой записи.</small></span></label><label><input type="radio" name="starterMode" value="visual" checked><span><b>Стартовый ритм <small>(рекомендуется)</small></b><small>Начало графика построено за тебя. Эти свечи не меняют итог или историю.</small></span></label></fieldset>`;
 
 // A disposable display layer. No events or daily statistics are fabricated.
 // The seed and consumed count are persisted; editing/deleting a real event
@@ -90,7 +91,7 @@ export function starterBars(journal, interval, start, end) {
       intraday: true,
       events: [],
       realDelta: 0,
-      title: "Стартовый ритм",
+      title: localizeUI("Стартовый ритм"),
       note: "",
     });
   }

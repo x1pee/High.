@@ -1,3 +1,5 @@
+import { ENGLISH_RELEASE_NOTES } from "./release-notes-en.mjs";
+import { localizeUI, locale, language, saveLanguage } from "./i18n.mjs";
 import { welcomeEntrance } from "./welcome-animation.mjs";
 import { visibleSummary, rangePeriod, visibleTurnover } from './market-summary.mjs';
 import { periodBounds, shiftPeriodAnchor, summarizePeriod } from "./period-summary.mjs";
@@ -89,6 +91,11 @@ import {
   saveSyncCredentials,
   setSyncMarker,
 } from "./sync-client.mjs";
+document.documentElement.lang = language;
+document.title = language === 'en' ? 'High. — your personal journey' : 'High. — личная траектория';
+const titleCaption = document.querySelector('.titlebar i');
+if (titleCaption) titleCaption.textContent = localizeUI('личная траектория');
+const languageOptions = () => '<option value="ru" ' + (language === 'ru' ? 'selected' : '') + '>Русский</option><option value="en" ' + (language === 'en' ? 'selected' : '') + '>English</option>';
 const $ = (s) => document.querySelector(s);
 const esc = (v) =>
   String(v ?? "").replace(
@@ -99,19 +106,19 @@ const esc = (v) =>
       ],
   );
 const fmt = (n) =>
-  new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 2 }).format(n);
+  new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(n);
 const signed = (n) =>
   (round(n) > 0 ? "+" : round(n) < 0 ? "−" : "") + fmt(Math.abs(n));
 const pct = (n) => (n === null ? "—" : signed(n) + "%");
 const direction = (n) => (n > 0 ? "positive" : n < 0 ? "negative" : "neutral");
 const fullDate = (d) =>
-  new Date(d + "T12:00:00").toLocaleDateString("ru-RU", {
+  new Date(d + "T12:00:00").toLocaleDateString(locale, {
     day: "numeric",
     month: "long",
     year: "numeric",
-  }).replace(/ г\.$/u, "\u00a0г.");
+  }).replace(/ г\.$/u, localizeUI("\u00a0г."));
 const shortDate = (d) =>
-  new Date(d + "T12:00:00").toLocaleDateString("ru-RU", {
+  new Date(d + "T12:00:00").toLocaleDateString(locale, {
     day: "numeric",
     month: "short",
   });
@@ -305,6 +312,7 @@ try {
 } catch {}
 let previewSettings = null;
 function toast(message) {
+  message = localizeUI(message);
   $("#toast").textContent = message;
   $("#toast").classList.add("show");
   clearTimeout(toastTimer);
@@ -334,7 +342,7 @@ function clearFocus() {
   readingCard = false;
   if ($("#selection-status"))
     $("#selection-status").textContent =
-      "Наведись на свечу · объём = сумма изменений по модулю";
+      localizeUI("Наведись на свечу · объём = сумма изменений по модулю");
   hover = null;
   hoverCardSide = null;
   lastChartPointerX = null;
@@ -351,14 +359,14 @@ function modal(content, { explicitClose = false, enterConfirm = null } = {}) {
   $("dialog")?.close();
   const previous = document.activeElement;
   $("#modal-root").innerHTML =
-    `<dialog class="modal"><button class="icon-button modal-close" aria-label="Закрыть">${icon("close")}</button>${content}</dialog>`;
+    localizeUI`<dialog class="modal"><button class="icon-button modal-close" aria-label="Закрыть">${icon("close")}</button>${content}</dialog>`;
   const dialog = $("dialog");
   dialog.showModal();
   if (enterConfirm) {
     const confirm = dialog.querySelector(enterConfirm);
     if (confirm) {
       confirm.setAttribute("aria-keyshortcuts", "Enter");
-      confirm.title = "Enter — подтвердить";
+      confirm.title = localizeUI("Enter — подтвердить");
       dialog.addEventListener("keydown", (event) => {
         if (
           event.key !== "Enter" ||
@@ -435,7 +443,7 @@ function commit(next, { replace = false } = {}) {
       demo !== inDemo ||
       (!updater && epoch !== contentEpoch)
     )
-      throw new Error("Дневник изменился. Повтори сохранение.");
+      throw new Error(localizeUI("Дневник изменился. Повтори сохранение."));
     const candidate = updater
       ? next(structuredClone(journal))
       : structuredClone(next);
@@ -471,19 +479,19 @@ let chartStyle = "candles",
   summaryAnchor = null,
   expandedChart = false;
 function header() {
-  return `<header class="topbar ambient"><a class="brand" href="#" aria-label="High. — главный экран"><img src="../assets/icon.svg" alt=""><span>High<span class="brand-dot">.</span></span></a><span class="product-label">личная траектория</span><nav aria-label="Основная навигация"><button id="home-button" class="nav-item ${view === "home" ? "active" : ""}">Меню</button><button data-view="chart" class="nav-item ${view === "chart" ? "active" : ""}">${icon("chart", 16)}График</button><button data-view="journal" class="nav-item ${view === "journal" ? "active" : ""}">${icon("book", 16)}Дневник</button></nav><div class="header-actions">${demo ? '<span class="demo-badge">ДЕМО · ПРИМЕР</span><button id="exit-demo" class="secondary demo-return">← Вернуться</button>' : `<span class="local-indicator"><i></i> Локально</span>`}<button id="updates" class="icon-button update-button" title="Обновления" aria-label="Обновления">${icon("download", 20)}</button><button id="settings" class="icon-button" title="Настройки" aria-label="Настройки">${icon("settings", 18)}</button></div></header>`;
+  return localizeUI`<header class="topbar ambient"><a class="brand" href="#" aria-label="High. — главный экран"><img src="../assets/icon.svg" alt=""><span>High<span class="brand-dot">.</span></span></a><span class="product-label">личная траектория</span><nav aria-label="Основная навигация"><button id="home-button" class="nav-item ${view === "home" ? "active" : ""}">Меню</button><button data-view="chart" class="nav-item ${view === "chart" ? "active" : ""}">${icon("chart", 16)}График</button><button data-view="journal" class="nav-item ${view === "journal" ? "active" : ""}">${icon("book", 16)}Дневник</button></nav><div class="header-actions">${demo ? localizeUI('<span class="demo-badge">ДЕМО · ПРИМЕР</span><button id="exit-demo" class="secondary demo-return">← Вернуться</button>') : localizeUI`<span class="local-indicator"><i></i> Локально</span>`}<button id="updates" class="icon-button update-button" title="Обновления" aria-label="Обновления">${icon("download", 20)}</button><button id="settings" class="icon-button" title="Настройки" aria-label="Настройки">${icon("settings", 18)}</button></div></header>`;
 }
 function marketSummaryMarkup(bars) {
   const summary = visibleSummary(bars);
   const period = rangePeriod(summary.minutes);
-  return `<div><span>Макс. за ${period}</span><strong data-visible-max>${summary.max === null ? "—" : fmt(summary.max)}</strong></div><div><span>Мин. за ${period}</span><strong data-visible-min>${summary.min === null ? "—" : fmt(summary.min)}</strong></div><div title="Сумма изменений по модулю на видимом участке графика"><span>Оборот за ${period}</span><strong data-turnover>${fmt(visibleTurnover(bars))}</strong></div>`;
+  return localizeUI`<div><span>Макс. за ${period}</span><strong data-visible-max>${summary.max === null ? "—" : fmt(summary.max)}</strong></div><div><span>Мин. за ${period}</span><strong data-visible-min>${summary.min === null ? "—" : fmt(summary.min)}</strong></div><div title="Сумма изменений по модулю на видимом участке графика"><span>Оборот за ${period}</span><strong data-turnover>${fmt(visibleTurnover(bars))}</strong></div>`;
 }
 function updateMarketSummary(bars) {
   const element = document.querySelector('.market-summary');
   if (element) element.innerHTML = marketSummaryMarkup(bars);
 }
 function terminalOverview(value, delta, progress) {
-  return `<section class="overview ambient"><div class="instrument"><span class="instrument-coin" tabindex="0" role="button" aria-label="Изменить монетку графика">${journal.settings.coin ? coinSvg(journal.settings.name, journal.settings.coin) : `<span class="coin-placeholder">+</span>`}</span><div><div class="eyebrow">ГРАФИК ЖИЗНИ</div><h1>${esc(journal.settings.name)}</h1></div></div><div class="quote-price"><div class="value-row"><span class="main-value ${direction(delta)}">${fmt(value)}</span></div><p class="overview-caption"><span class="overview-change ${direction(delta)}">${signed(delta)} / ${pct(progress)}</span> за всё время</p></div><div class="market-metrics market-summary">${marketSummaryMarkup(view === "chart" ? [] : candles)}</div><div class="overview-right"><div class="entry-actions"><button class="quick-move-button quick-move-down" id="quick-move-down" aria-label="Добавить событие снижения" title="Снижение">${icon("market-down", 18)}</button><button class="quick-move-button quick-move-up" id="quick-move-up" aria-label="Добавить событие роста" title="Рост">${icon("market-up", 18)}</button>${journal.settings.experimentalRandom ? `<button class="secondary" id="random-event" title="Добавить тестовый день: шесть событий, каждый следующий день — на сутки раньше">${icon("spark", 16)} Случайное</button>` : ""}<button class="primary" id="add-event">${icon("plus", 17)} Добавить событие</button></div><span class="entry-shortcut">Ctrl + N</span></div></section>`;
+  return localizeUI`<section class="overview ambient"><div class="instrument"><span class="instrument-coin" tabindex="0" role="button" aria-label="Изменить монетку графика">${journal.settings.coin ? coinSvg(journal.settings.name, journal.settings.coin) : `<span class="coin-placeholder">+</span>`}</span><div><div class="eyebrow">ГРАФИК ЖИЗНИ</div><h1>${esc(journal.settings.name)}</h1></div></div><div class="quote-price"><div class="value-row"><span class="main-value ${direction(delta)}">${fmt(value)}</span></div><p class="overview-caption"><span class="overview-change ${direction(delta)}">${signed(delta)} / ${pct(progress)}</span> за всё время</p></div><div class="market-metrics market-summary">${marketSummaryMarkup(view === "chart" ? [] : candles)}</div><div class="overview-right"><div class="entry-actions"><button class="quick-move-button quick-move-down" id="quick-move-down" aria-label="Добавить событие снижения" title="Снижение">${icon("market-down", 18)}</button><button class="quick-move-button quick-move-up" id="quick-move-up" aria-label="Добавить событие роста" title="Рост">${icon("market-up", 18)}</button>${journal.settings.experimentalRandom ? localizeUI`<button class="secondary" id="random-event" title="Добавить тестовый день: шесть событий, каждый следующий день — на сутки раньше">${icon("spark", 16)} Случайное</button>` : ""}<button class="primary" id="add-event">${icon("plus", 17)} Добавить событие</button></div><span class="entry-shortcut">Ctrl + N</span></div></section>`;
 }
 let renderedView = null,
   renderedGraph = null,
@@ -540,7 +548,7 @@ function render() {
     expandedChart && view === "chart",
   );
   $("#app").innerHTML =
-    `<div class="shell">${header()}<main>${terminalOverview(value, delta, progress)}${view === "chart" ? chartLayout() : journalLayout()}<footer class="ambient"><span class="footer-quote"><b>//</b> ${esc(chartPhrase)}</span><span><i class="status-dot"></i> ${demo ? "Демонстрация · записи не сохраняются" : "График жизни"} <b class="footer-version">High<span class="brand-dot">.</span> __APP_VERSION__</b></span></footer></main></div>`;
+    `<div class="shell">${header()}<main>${terminalOverview(value, delta, progress)}${view === "chart" ? chartLayout() : journalLayout()}<footer class="ambient"><span class="footer-quote"><b>//</b> ${esc(chartPhrase)}</span><span><i class="status-dot"></i> ${demo ? localizeUI("Демонстрация · записи не сохраняются") : localizeUI("График жизни")} <b class="footer-version">High<span class="brand-dot">.</span> __APP_VERSION__</b></span></footer></main></div>`;
   bindShell();
   if (view === "chart") {
     intervalControls();
@@ -553,8 +561,8 @@ function render() {
     disposePanelLayout = bindPanelLayout();
     setHelp(
       $("#panel-resizer"),
-      "Размер ленты и графика",
-      "Перетяни границу вверх или вниз. Двойной щелчок или Home — исходный размер; стрелки — изменение с клавиатуры.",
+      localizeUI("Размер ленты и графика"),
+      localizeUI("Перетяни границу вверх или вниз. Двойной щелчок или Home — исходный размер; стрелки — изменение с клавиатуры."),
     );
     const observedChart = $("#chart");
     chartObserver = new ResizeObserver(() => {
@@ -574,19 +582,19 @@ function render() {
   } else bindJournal();
 }
 function chartLayout() {
-  const markup = `<section class="workspace"><div class="chart-panel"><div class="chart-toolbar ambient"><div class="chart-label"><span class="section-prefix">#</span> Траектория <span class="chart-subtitle">каждая свеча — часть пути</span></div><div class="chart-toolbar-actions"><button id="group-moments" class="text-button" aria-pressed="${groupMoments}">Промежутки · ${groupMoments ? "все" : "1"}</button><span class="chart-subtitle">Колесо — масштаб · Shift+перетаскивание — по вертикали</span></div></div><div class="chart-summary ambient"><span id="range-label"></span><span id="range-change"></span></div><div class="plot-body"><div class="chart-rail ambient"><button id="rail-focus" class="rail-button" aria-label="Выбор свечи" aria-pressed="${!drawTool && !measuring}">⌖</button><button data-chart-style="candles" class="rail-button ${chartStyle !== "line" ? "active" : ""}" aria-label="Свечной график" title="Свечи">${icon("chart", 18)}<span class="style-caret">›</span></button><button data-chart-style="line" class="rail-button ${chartStyle === "line" ? "active" : ""}" aria-label="Линейный график" title="Линия"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m3 17 5-5 4 3 8-11"/></svg></button><span class="rail-separator"></span>${[
-    ["level", "─", "Горизонтальный уровень · нажми на нужную высоту"],
-    ["trend", "╱", "Линия тренда · выбери две точки"],
-    ["magnet", "∩", "Магнит · привязка к ближайшей цене свечи"],
-    ["hide", "◉", "Показать или скрыть линии"],
-    ["undo", "↶", "Удалить последнюю линию"],
-    ["date", "↦", "Перейти к дате"],
+  const markup = localizeUI`<section class="workspace"><div class="chart-panel"><div class="chart-toolbar ambient"><div class="chart-label"><span class="section-prefix">#</span> Траектория <span class="chart-subtitle">каждая свеча — часть пути</span></div><div class="chart-toolbar-actions"><button id="group-moments" class="text-button" aria-pressed="${groupMoments}">Промежутки · ${groupMoments ? localizeUI("все") : "1"}</button><span class="chart-subtitle">Колесо — масштаб · Shift+перетаскивание — по вертикали</span></div></div><div class="chart-summary ambient"><span id="range-label"></span><span id="range-change"></span></div><div class="plot-body"><div class="chart-rail ambient"><button id="rail-focus" class="rail-button" aria-label="Выбор свечи" aria-pressed="${!drawTool && !measuring}">⌖</button><button data-chart-style="candles" class="rail-button ${chartStyle !== "line" ? "active" : ""}" aria-label="Свечной график" title="Свечи">${icon("chart", 18)}<span class="style-caret">›</span></button><button data-chart-style="line" class="rail-button ${chartStyle === "line" ? "active" : ""}" aria-label="Линейный график" title="Линия"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m3 17 5-5 4 3 8-11"/></svg></button><span class="rail-separator"></span>${[
+    ["level", "─", localizeUI("Горизонтальный уровень · нажми на нужную высоту")],
+    ["trend", "╱", localizeUI("Линия тренда · выбери две точки")],
+    ["magnet", "∩", localizeUI("Магнит · привязка к ближайшей цене свечи")],
+    ["hide", "◉", localizeUI("Показать или скрыть линии")],
+    ["undo", "↶", localizeUI("Удалить последнюю линию")],
+    ["date", "↦", localizeUI("Перейти к дате")],
   ]
     .map(
       ([tool, glyph, label]) => {
         const tooltip = tool === "trend"
           ? ""
-          : ` title="${label}${tool === "level" ? " · линии остаются до закрытия приложения" : ""}"`;
+          : ` title="${label}${tool === "level" ? localizeUI(" · линии остаются до закрытия приложения") : ""}"`;
         return `<button id="rail-${tool}" class="rail-button" aria-label="${label}"${tooltip}>${glyph}</button>`;
       },
     )
@@ -595,7 +603,7 @@ function chartLayout() {
     )}<span class="rail-separator"></span><button id="rail-note" class="rail-button" title="Описать выбранный день" aria-label="Описать выбранный день">${icon("edit", 17)}</button><button id="rail-expand" class="rail-button rail-bottom" aria-pressed="${expandedChart}" title="Развернуть график" aria-label="Развернуть график">${expandedChart ? "⊟" : "⛶"}</button></div><div id="chart" tabindex="0" role="application" aria-label="График жизни. Стрелки выбирают свечу, Enter выбирает день, P закрепляет, Escape снимает выделение. Перетаскивание сдвигает график по времени и цене; Shift+перетаскивание двигает шкалу даже при активном инструменте; Ctrl+колесо над графиком меняет вертикальный масштаб."><canvas id="chart-canvas" aria-hidden="true" hidden></canvas><svg id="chart-svg" aria-hidden="true"></svg><div class="chart-watermark" aria-hidden="true"><b>High<span class="brand-dot">.</span></b><span>личная траектория</span></div><div id="chart-empty" class="chart-empty" hidden></div><div id="short-history" hidden></div></div></div><div class="chart-bottom ambient"><div class="legend"><span><i class="legend-up"></i> Рост</span><span><i class="legend-down"></i> Спад</span><span><i class="legend-gap"></i> Без записей</span></div><div class="chart-controls"><button id="previous" class="icon-button small" aria-label="Предыдущий период">${icon("left", 15)}</button><button id="today" class="text-button">Сегодня</button><button id="auto-range" class="text-button">Авто</button><button id="next" class="icon-button small" aria-label="Следующий период">${icon("right", 15)}</button><span class="control-divider"></span><button id="zoom-out" class="icon-button small" aria-label="Уменьшить масштаб">${icon("minus", 15)}</button><button id="zoom-in" class="icon-button small" aria-label="Увеличить масштаб">${icon("plus", 15)}</button></div></div><div class="chart-hint ambient"><span class="hint-key">⌖</span> ЛКМ — выбрать день · ПКМ — закрепить <span>Колесо над шкалой — вертикальный масштаб · перетаскивание — график</span></div></div><div id="side-resizer" role="separator" tabindex="0" aria-orientation="vertical" aria-label="Изменить ширину графика"></div><aside class="day-panel ambient" id="day-panel"></aside><div id="panel-resizer" role="separator" tabindex="0" aria-orientation="horizontal" aria-label="Изменить высоту ленты"><span></span><span id="panel-corner" aria-hidden="true"></span></div><section class="activity-panel ambient" aria-label="Лента записей"><div class="activity-heading"><div class="activity-tabs"><button data-ledger="events" class="${ledgerView === "events" ? "active" : ""}">Последние события</button><button data-ledger="notes" class="${ledgerView === "notes" ? "active" : ""}">Заметки дня</button><button data-ledger="favorites" class="${ledgerView === "favorites" ? "active" : ""}">Избранное</button><button data-ledger="summary" class="${ledgerView === "summary" ? "active" : ""}">Сводка</button></div><button id="ledger-position" class="text-button"></button><button id="open-full-journal" class="text-button"><span>Весь дневник</span>${icon("right", 13)}</button></div><div id="activity-content"></div></section></section>`;
   return markup.replace(
     '<svg id="chart-svg" aria-hidden="true"></svg>',
-    '$&<div id="volume-resizer" role="separator" tabindex="0" aria-orientation="horizontal" aria-label="Изменить высоту области объёма" title="Перетащи, чтобы изменить высоту объёма" hidden><span></span></div>',
+    localizeUI('$&<div id="volume-resizer" role="separator" tabindex="0" aria-orientation="horizontal" aria-label="Изменить высоту области объёма" title="Перетащи, чтобы изменить высоту объёма" hidden><span></span></div>'),
   );
 }
 function renderLedger() {
@@ -606,18 +614,18 @@ function renderLedger() {
     const summary = summarizePeriod(candles, start, end);
     const periodLabel =
       summaryPeriod === "week"
-        ? `${new Date(`${start}T12:00:00`).toLocaleDateString("ru", { day: "numeric", month: "short" })} — ${new Date(`${end}T12:00:00`).toLocaleDateString("ru", { day: "numeric", month: "short" })}`
-        : new Date(`${start}T12:00:00`).toLocaleDateString("ru", { month: "long", year: "numeric" });
+        ? `${new Date(`${start}T12:00:00`).toLocaleDateString(locale, { day: "numeric", month: "short" })} — ${new Date(`${end}T12:00:00`).toLocaleDateString(locale, { day: "numeric", month: "short" })}`
+        : new Date(`${start}T12:00:00`).toLocaleDateString(locale, { month: "long", year: "numeric" });
     const nextAnchor = shiftPeriodAnchor(anchor, summaryPeriod, 1);
     const canAdvance = periodBounds(nextAnchor, summaryPeriod).start <= localDate();
     const highlights = summary.highlights.length
       ? summary.highlights
           .map(
             (event) =>
-              `<li><span><small>${shortDate(event.date)} · ${esc(event.time ?? "")}</small>${esc(event.text || "Без описания")}</span><strong class="${direction(event.delta)}">${signed(event.delta)}</strong></li>`,
+              `<li><span><small>${shortDate(event.date)} · ${esc(event.time ?? "")}</small>${esc(event.text || localizeUI("Без описания"))}</span><strong class="${direction(event.delta)}">${signed(event.delta)}</strong></li>`,
           )
           .join("")
-      : '<li class="muted">В этом периоде пока нет событий.</li>';
+      : localizeUI('<li class="muted">В этом периоде пока нет событий.</li>');
     const notes = summary.notes.length
       ? summary.notes
           .slice()
@@ -628,9 +636,9 @@ function renderLedger() {
               `<li><span><small>${shortDate(day.date)}${day.title ? ` · ${esc(day.title)}` : ""}</small>${esc(day.note || "")}</span></li>`,
           )
           .join("")
-      : '<li class="muted">Заметок за этот период нет.</li>';
+      : localizeUI('<li class="muted">Заметок за этот период нет.</li>');
     $("#activity-content").innerHTML =
-      `<div class="period-summary"><div class="period-summary-toolbar"><div class="period-summary-switch"><button class="icon-button small" id="summary-prev" aria-label="Предыдущий период">${icon("left", 14)}</button><button data-summary-period="week" class="${summaryPeriod === "week" ? "active" : ""}">Неделя</button><button data-summary-period="month" class="${summaryPeriod === "month" ? "active" : ""}">Месяц</button><button class="icon-button small" id="summary-next" aria-label="Следующий период" ${canAdvance ? "" : "disabled"}>${icon("right", 14)}</button></div><strong>${esc(periodLabel)}</strong></div><div class="period-summary-stats"><div><span>Итог</span><strong class="${direction(summary.delta)}">${signed(summary.delta)} <small>(${pct(summary.percent)})</small></strong></div><div><span>События</span><strong>${summary.eventCount}</strong></div><div><span>Оборот</span><strong>${fmt(summary.turnover)}</strong></div></div><div class="period-summary-columns"><section><h3>Самые заметные события</h3><ul>${highlights}</ul></section><section><h3>Заметки</h3><ul>${notes}</ul></section></div></div>`;
+      localizeUI`<div class="period-summary"><div class="period-summary-toolbar"><div class="period-summary-switch"><button class="icon-button small" id="summary-prev" aria-label="Предыдущий период">${icon("left", 14)}</button><button data-summary-period="week" class="${summaryPeriod === "week" ? "active" : ""}">Неделя</button><button data-summary-period="month" class="${summaryPeriod === "month" ? "active" : ""}">Месяц</button><button class="icon-button small" id="summary-next" aria-label="Следующий период" ${canAdvance ? "" : "disabled"}>${icon("right", 14)}</button></div><strong>${esc(periodLabel)}</strong></div><div class="period-summary-stats"><div><span>Итог</span><strong class="${direction(summary.delta)}">${signed(summary.delta)} <small>(${pct(summary.percent)})</small></strong></div><div><span>События</span><strong>${summary.eventCount}</strong></div><div><span>Оборот</span><strong>${fmt(summary.turnover)}</strong></div></div><div class="period-summary-columns"><section><h3>Самые заметные события</h3><ul>${highlights}</ul></section><section><h3>Заметки</h3><ul>${notes}</ul></section></div></div>`;
     $("#summary-prev").onclick = () => {
       summaryAnchor = shiftPeriodAnchor(anchor, summaryPeriod, -1);
       renderLedger();
@@ -657,13 +665,13 @@ function renderLedger() {
       .slice(0, favoriteLimit)
       .map((date) => {
         const day = candles.find((row) => row.date === date) ?? dayData(date);
-        const description = day.title || day.note || `${day.events.length} событий`;
-        return `<div class="favorite-day-row"><button class="favorite-day-open" data-activity-date="${date}"><span><strong>${fullDate(date)}</strong><small>${esc(description)}</small></span><strong class="${direction(day.delta)}">${signed(day.delta)}</strong></button><button class="icon-button small favorite-day-toggle active" data-favorite-remove="${date}" aria-label="Убрать день ${date} из избранного" title="Убрать из избранного" aria-pressed="true">★</button></div>`;
+        const description = day.title || day.note || localizeUI`${day.events.length} событий`;
+        return localizeUI`<div class="favorite-day-row"><button class="favorite-day-open" data-activity-date="${date}"><span><strong>${fullDate(date)}</strong><small>${esc(description)}</small></span><strong class="${direction(day.delta)}">${signed(day.delta)}</strong></button><button class="icon-button small favorite-day-toggle active" data-favorite-remove="${date}" aria-label="Убрать день ${date} из избранного" title="Убрать из избранного" aria-pressed="true">★</button></div>`;
       })
       .join("");
     $("#activity-content").innerHTML = items
-      ? `<div class="favorite-days">${items}</div>${favoriteDates.length > favoriteLimit ? '<button id="favorite-load-more" class="secondary favorite-load-more">Показать ещё</button>' : ""}`
-      : '<div class="activity-empty"><span>☆</span> Отмечай звёздочкой важные дни — они появятся здесь.</div>';
+      ? `<div class="favorite-days">${items}</div>${favoriteDates.length > favoriteLimit ? localizeUI('<button id="favorite-load-more" class="secondary favorite-load-more">Показать ещё</button>') : ""}`
+      : localizeUI('<div class="activity-empty"><span>☆</span> Отмечай звёздочкой важные дни — они появятся здесь.</div>');
     $("#favorite-load-more")?.addEventListener("click", () => {
       favoriteLimit += 30;
       renderLedger();
@@ -696,7 +704,7 @@ function renderLedger() {
     const day = dayData(selected),
       draftKey = journal.id + ":" + selected;
     $("#activity-content").innerHTML =
-      `<form id="quick-note" class="quick-note"><label><span>${fullDate(selected)}</span><textarea name="note" rows="2" maxlength="12000" placeholder="Что хочется сохранить об этом дне?">${esc(noteDrafts.get(draftKey) ?? day.note ?? "")}</textarea></label><div><button class="primary" type="submit">Сохранить заметку</button><button class="text-button" type="button" id="note-details">Название и подробности</button><span role="status" id="note-status"></span></div></form>`;
+      localizeUI`<form id="quick-note" class="quick-note"><label><span>${fullDate(selected)}</span><textarea name="note" rows="2" maxlength="12000" placeholder="Что хочется сохранить об этом дне?">${esc(noteDrafts.get(draftKey) ?? day.note ?? "")}</textarea></label><div><button class="primary" type="submit">Сохранить заметку</button><button class="text-button" type="button" id="note-details">Название и подробности</button><span role="status" id="note-status"></span></div></form>`;
     $("#quick-note textarea").oninput = (e) =>
       noteDrafts.set(draftKey, e.target.value);
     $("#quick-note").onsubmit = async (e) => {
@@ -726,9 +734,9 @@ function renderLedger() {
           })),
         );
         if ($("#day-panel")) renderDay();
-        status.textContent = "Сохранено";
+        status.textContent = localizeUI("Сохранено");
       } catch (error) {
-        status.textContent = error.message;
+        status.textContent = localizeUI(error.message);
       } finally {
         b.disabled = false;
         f.elements.note.readOnly = false;
@@ -737,8 +745,8 @@ function renderLedger() {
     $("#note-details").onclick = () => dayForm(selected);
   } else
     $("#activity-content").innerHTML = rows.length
-      ? `<table class="activity-table"><thead><tr><th>Дата / время</th><th>${ledgerView === "events" ? "Событие" : "Описание дня"}</th><th>Изменение</th><th>Значение</th></tr></thead><tbody>${rows.map((r) => `<tr><td>${shortDate(r.date)}<span>${r.time ?? ""}</span></td><td><button data-activity-date="${r.date}" title="Открыть день">${esc(r.text ?? r.title ?? "Без названия") || "Без названия"}</button>${ledgerView === "notes" ? `<small>${esc(r.note)}</small>` : ""}</td><td class="${direction(r.delta)}">${signed(r.delta)} <small>(${pct(r.percent)})</small></td><td>${fmt(r.after ?? r.close)}</td></tr>`).join("")}</tbody></table>`
-      : `<div class="activity-empty"><span>[ пока пусто ]</span> ${ledgerView === "events" ? "Первое событие станет началом твоей истории." : "Опиши день — здесь появится его история."}</div>`;
+      ? localizeUI`<table class="activity-table"><thead><tr><th>Дата / время</th><th>${ledgerView === "events" ? localizeUI("Событие") : localizeUI("Описание дня")}</th><th>Изменение</th><th>Значение</th></tr></thead><tbody>${rows.map((r) => localizeUI`<tr><td>${shortDate(r.date)}<span>${r.time ?? ""}</span></td><td><button data-activity-date="${r.date}" title="Открыть день">${esc(r.text ?? r.title ?? localizeUI("Без названия")) || localizeUI("Без названия")}</button>${ledgerView === "notes" ? `<small>${esc(r.note)}</small>` : ""}</td><td class="${direction(r.delta)}">${signed(r.delta)} <small>(${pct(r.percent)})</small></td><td>${fmt(r.after ?? r.close)}</td></tr>`).join("")}</tbody></table>`
+      : localizeUI`<div class="activity-empty"><span>[ пока пусто ]</span> ${ledgerView === "events" ? localizeUI("Первое событие станет началом твоей истории.") : localizeUI("Опиши день — здесь появится его история.")}</div>`;
   bindActivityDates();
   bindLedgerControls();
 }
@@ -780,24 +788,24 @@ function openDrawingMenu(anchor) {
   menu.id = "drawing-menu";
   menu.className = "chart-style-menu";
   menu.role = "menu";
-  menu.setAttribute("aria-label", "Линии на графике");
+  menu.setAttribute("aria-label", localizeUI("Линии на графике"));
   menu.innerHTML =
-    "<strong>Линии</strong>" +
+    localizeUI("<strong>Линии</strong>") +
     [
       [
         "trend",
-        "Линия тренда",
-        "Соединяет две точки и показывает направление движения.",
+        localizeUI("Линия тренда"),
+        localizeUI("Соединяет две точки и показывает направление движения."),
       ],
       [
         "arrow",
-        "Стрелка",
-        "Проводит линию от первой точки ко второй и отмечает направление.",
+        localizeUI("Стрелка"),
+        localizeUI("Проводит линию от первой точки ко второй и отмечает направление."),
       ],
       [
         "vertical",
-        "Вертикальная линия",
-        "Одним нажатием отмечает выбранное время по высоте графика.",
+        localizeUI("Вертикальная линия"),
+        localizeUI("Одним нажатием отмечает выбранное время по высоте графика."),
       ],
     ]
       .map(([id, title, description]) =>
@@ -923,114 +931,114 @@ function bindTerminalTools() {
 function refreshNoteHelp() {
   setHelp(
     $("#rail-note"),
-    "Название и заметка · " + fullDate(noteDay()),
-    "Открыть запись за этот день. Другой день можно выбрать кликом по свече или в календаре справа. Если день не выбирал, откроется сегодня.",
+    localizeUI("Название и заметка · ") + fullDate(noteDay()),
+    localizeUI("Открыть запись за этот день. Другой день можно выбрать кликом по свече или в календаре справа. Если день не выбирал, откроется сегодня."),
   );
 }
 function bindChartHelp() {
   const help = {
     "rail-focus": [
-      "Выбор свечи",
-      "Наведи на тело или тонкую тень свечи, чтобы увидеть запись. ПКМ закрепляет карточку. Пустую область можно перетаскивать для просмотра истории.",
+      localizeUI("Выбор свечи"),
+      localizeUI("Наведи на тело или тонкую тень свечи, чтобы увидеть запись. ПКМ закрепляет карточку. Пустую область можно перетаскивать для просмотра истории."),
     ],
     "rail-level": [
-      "Горизонтальный уровень",
-      "Нажми на нужную высоту графика — появится линия для сравнения значений. Esc отменяет инструмент. Разметка остаётся до закрытия приложения.",
+      localizeUI("Горизонтальный уровень"),
+      localizeUI("Нажми на нужную высоту графика — появится линия для сравнения значений. Esc отменяет инструмент. Разметка остаётся до закрытия приложения."),
     ],
     "rail-magnet": [
-      "Магнит",
-      "При рисовании точка прилипает к ближайшему началу, итогу или краю свечи. Выключи, чтобы поставить её на любой высоте.",
+      localizeUI("Магнит"),
+      localizeUI("При рисовании точка прилипает к ближайшему началу, итогу или краю свечи. Выключи, чтобы поставить её на любой высоте."),
     ],
     "rail-hide": [
-      hideDrawings ? "Показать разметку" : "Скрыть разметку",
-      "Временно прячет нарисованные уровни и линии тренда. Повторное нажатие возвращает их.",
+      hideDrawings ? localizeUI("Показать разметку") : localizeUI("Скрыть разметку"),
+      localizeUI("Временно прячет нарисованные уровни и линии тренда. Повторное нажатие возвращает их."),
     ],
     "rail-undo": [
-      "Удалить последнюю линию",
-      "Убирает последний нарисованный уровень или линию тренда. Если выбираешь вторую точку, отменяет первую.",
+      localizeUI("Удалить последнюю линию"),
+      localizeUI("Убирает последний нарисованный уровень или линию тренда. Если выбираешь вторую точку, отменяет первую."),
     ],
     "rail-date": [
-      "Перейти к дате",
-      "Выбери день — график переместится к нему. Длительность свечи и масштаб останутся прежними.",
+      localizeUI("Перейти к дате"),
+      localizeUI("Выбери день — график переместится к нему. Длительность свечи и масштаб останутся прежними."),
     ],
     "rail-expand": [
-      expandedChart ? "Вернуть обычный размер" : "Развернуть график",
-      "Расширяет график, скрывая боковую панель и ленту. Нажми ещё раз, чтобы вернуть их.",
+      expandedChart ? localizeUI("Вернуть обычный размер") : localizeUI("Развернуть график"),
+      localizeUI("Расширяет график, скрывая боковую панель и ленту. Нажми ещё раз, чтобы вернуть их."),
     ],
     "show-average": [
-      "MA · средняя",
-      `Средние линии сглаживают колебания. 7 — быстрее реагирует, 28 — плавнее. Включай несколько чисел одновременно. MA скрывает и возвращает выбранные линии.`,
+      localizeUI("MA · средняя"),
+      localizeUI`Средние линии сглаживают колебания. 7 — быстрее реагирует, 28 — плавнее. Включай несколько чисел одновременно. MA скрывает и возвращает выбранные линии.`,
     ],
     "show-base": [
-      "База · точка отсчёта",
-      "Показывает начальный уровень, если он попадает в видимую шкалу. Масштаб свечей не меняется; процентная шкала помогает сравнить результат со стартом.",
+      localizeUI("База · точка отсчёта"),
+      localizeUI("Показывает начальный уровень, если он попадает в видимую шкалу. Масштаб свечей не меняется; процентная шкала помогает сравнить результат со стартом."),
     ],
     "percent-axis": [
-      "Процентная шкала",
+      localizeUI("Процентная шкала"),
       journal.settings.initial === 0
-        ? "Для процентов нужна ненулевая точка отсчёта. Сейчас начальное значение равно нулю."
-        : "Показывает справа рост или спад в процентах от начального значения вместо абсолютных значений. Повторное нажатие возвращает числа.",
+        ? localizeUI("Для процентов нужна ненулевая точка отсчёта. Сейчас начальное значение равно нулю.")
+        : localizeUI("Показывает справа рост или спад в процентах от начального значения вместо абсолютных значений. Повторное нажатие возвращает числа."),
     ],
     "measure-tool": [
-      "Измерить участок",
-      "Нажми возле первой свечи, затем возле второй. Увидишь разницу значений, процент и прошедшее время. Esc завершает измерение.",
+      localizeUI("Измерить участок"),
+      localizeUI("Нажми возле первой свечи, затем возле второй. Увидишь разницу значений, процент и прошедшее время. Esc завершает измерение."),
     ],
     previous: [
-      "Раньше по истории",
-      "Сдвигает видимый участок к более ранним датам. Длительность свечи не меняется.",
+      localizeUI("Раньше по истории"),
+      localizeUI("Сдвигает видимый участок к более ранним датам. Длительность свечи не меняется."),
     ],
     next: [
-      "Позже по истории",
-      "Сдвигает видимый участок к более поздним датам, максимум до сегодняшнего дня.",
+      localizeUI("Позже по истории"),
+      localizeUI("Сдвигает видимый участок к более поздним датам, максимум до сегодняшнего дня."),
     ],
     today: [
-      "Вернуться к сегодняшнему дню",
-      "Переносит график к текущему моменту и выбирает сегодняшний день справа. Твой масштаб сохраняется.",
+      localizeUI("Вернуться к сегодняшнему дню"),
+      localizeUI("Переносит график к текущему моменту и выбирает сегодняшний день справа. Твой масштаб сохраняется."),
     ],
     "auto-range": [
-      "Авто · диапазон значений",
-      "Авто подбирает диапазон по свечам. Перетаскивай область графика или шкалу справа, чтобы сдвинуть значения вверх и вниз. Колесо над шкалой справа (или Ctrl+колесо над графиком) меняет вертикальный масштаб. Shift+перетаскивание сдвигает вид, даже если выбран инструмент рисования. Авто вернёт подстройку по свечам.",
+      localizeUI("Авто · диапазон значений"),
+      localizeUI("Авто подбирает диапазон по свечам. Перетаскивай область графика или шкалу справа, чтобы сдвинуть значения вверх и вниз. Колесо над шкалой справа (или Ctrl+колесо над графиком) меняет вертикальный масштаб. Shift+перетаскивание сдвигает вид, даже если выбран инструмент рисования. Авто вернёт подстройку по свечам."),
     ],
     "zoom-in": [
-      "Приблизить",
-      "Свечи становятся крупнее, в окне остаётся меньше времени. То же самое можно сделать колесом мыши.",
+      localizeUI("Приблизить"),
+      localizeUI("Свечи становятся крупнее, в окне остаётся меньше времени. То же самое можно сделать колесом мыши."),
     ],
     "zoom-out": [
-      "Отдалить",
-      "Свечи становятся мельче, видно больше истории. «Авто» вернёт стандартный масштаб.",
+      localizeUI("Отдалить"),
+      localizeUI("Свечи становятся мельче, видно больше истории. «Авто» вернёт стандартный масштаб."),
     ],
   };
   for (const [id, args] of Object.entries(help)) setHelp($("#" + id), ...args);
   for (const b of document.querySelectorAll("[data-average]"))
     setHelp(
       b,
-      "Средняя за " + b.dataset.average + " свечей",
-      "Включить или скрыть эту линию независимо от остальных. 7 — жёлтая, 14 — голубая, 28 — фиолетовая. Чем больше число, тем плавнее линия.",
+      localizeUI("Средняя за ") + b.dataset.average + localizeUI(" свечей"),
+      localizeUI("Включить или скрыть эту линию независимо от остальных. 7 — жёлтая, 14 — голубая, 28 — фиолетовая. Чем больше число, тем плавнее линия."),
     );
   for (const b of document.querySelectorAll("[data-interval]"))
     setHelp(
       b,
-      "Одна свеча — " +
+      localizeUI("Одна свеча — ") +
         TIMEFRAMES.find((x) => x[0] === Number(b.dataset.interval))[2],
-      "Объединяет записи за этот промежуток. Повторное нажатие возвращает стандартное приближение.",
+      localizeUI("Объединяет записи за этот промежуток. Повторное нажатие возвращает стандартное приближение."),
     );
   const styleButton = document.querySelector('[data-chart-style="candles"]');
   styleButton.removeAttribute("title");
   styleButton.setAttribute(
     "aria-label",
-    "Вид графика · " + CHART_STYLES.find((x) => x[0] === chartStyle)[1],
+    localizeUI("Вид графика · ") + CHART_STYLES.find((x) => x[0] === chartStyle)[1],
   );
   styleButton.setAttribute("aria-haspopup", "menu");
   styleButton.onpointerenter = () => openStyleMenu(styleButton);
   setHelp(
     document.querySelector('[data-chart-style="line"]'),
-    "Линейный график",
-    "Соединяет итоговые значения свечей. Другие виды доступны при наведении на кнопку свечей выше.",
+    localizeUI("Линейный график"),
+    localizeUI("Соединяет итоговые значения свечей. Другие виды доступны при наведении на кнопку свечей выше."),
   );
   setHelp(
     $("#rhythm-toggle")?.parentElement,
-    "Плавный ритм",
-    "Мягкие колебания между записями. Точные значения событий сохраняются.",
+    localizeUI("Плавный ритм"),
+    localizeUI("Мягкие колебания между записями. Точные значения событий сохраняются."),
   );
   refreshNoteHelp();
 }
@@ -1041,9 +1049,9 @@ function openStyleMenu(anchor) {
   menu.id = "chart-style-menu";
   menu.className = "chart-style-menu";
   menu.role = "menu";
-  menu.setAttribute("aria-label", "Вид графика");
+  menu.setAttribute("aria-label", localizeUI("Вид графика"));
   menu.innerHTML =
-    "<strong>Вид графика</strong>" +
+    localizeUI("<strong>Вид графика</strong>") +
     CHART_STYLES.filter(([id]) => id !== "line")
       .map(
         ([id, name, description]) =>
@@ -1109,8 +1117,8 @@ function bindShell() {
   if ($(".instrument-coin"))
     setHelp(
       $(".instrument-coin"),
-      "Монетка графика",
-      "Нажми, чтобы изменить цвет, символ, буквы и ободок этой монетки.",
+      localizeUI("Монетка графика"),
+      localizeUI("Нажми, чтобы изменить цвет, символ, буквы и ободок этой монетки."),
     );
   document.querySelectorAll("button[data-view]").forEach(
     (b) =>
@@ -1172,9 +1180,9 @@ function daysBetween(a, b) {
 function intervalControls() {
   const toolbar = document.createElement("div");
   toolbar.className = "interval-toolbar ambient";
-  toolbar.innerHTML = `<div class="interval-selector" aria-label="Длительность одной свечи"><span>Интервал</span>${TIMEFRAMES.map(
+  toolbar.innerHTML = localizeUI`<div class="interval-selector" aria-label="Длительность одной свечи"><span>Интервал</span>${TIMEFRAMES.map(
     ([n, label, description]) =>
-      `<button title="Одна свеча — ${description}" data-interval="${n}" class="${interval === n ? "active" : ""}" aria-pressed="${interval === n}">${label}</button>`,
+      localizeUI`<button title="Одна свеча — ${description}" data-interval="${n}" class="${interval === n ? "active" : ""}" aria-pressed="${interval === n}">${label}</button>`,
   ).join(
     "",
   )}</div><label class="rhythm-switch" title="Мягкие визуальные колебания между реальными записями. Не меняют значения и итоги."><input id="rhythm-toggle" type="checkbox" ${journal.settings.interpolate ? "checked" : ""}> Плавный ритм</label>`;
@@ -1202,18 +1210,18 @@ function intervalControls() {
   };
   if (interval < 1440) {
     $(".chart-hint").innerHTML =
-      `${icon("spark", 13)} ${journal.settings.interpolate ? "Плавный ритм · колебания между записями" : "Только реальные изменения · без интерполяции"}`;
+      `${icon("spark", 13)} ${journal.settings.interpolate ? localizeUI("Плавный ритм · колебания между записями") : localizeUI("Только реальные изменения · без интерполяции")}`;
   } else {
     $("#rhythm-toggle").disabled = true;
   }
   const controls = document.createElement("div");
   controls.className = "analysis-tools ambient";
-  controls.innerHTML = `<div class="average-switch" role="group" aria-label="Средняя линия"><button id="show-average" aria-pressed="${showAverage}">MA</button>${[7, 14, 28].map((n) => `<button data-average="${n}" style="--average-color:${averageColors[n]}" aria-pressed="${showAverage && averagePeriods.includes(n)}">${n}</button>`).join("")}</div><button id="show-base" aria-pressed="${showBase}" title="Линия начального значения">База</button><button id="percent-axis" aria-pressed="${percentAxis}" title="Изменение относительно начального значения">%</button><button id="measure-tool" aria-pressed="${measuring}" title="Выбери две свечи, чтобы измерить участок">↔ Измерить</button><button id="show-volume" aria-pressed="${journal.settings.showVolume !== false}" title="Сумма изменений по модулю в каждой свече">Объём</button><output id="measure-output" aria-live="polite"></output><output id="drawing-status" aria-live="polite">${drawTool ? (drawTool === "vertical" ? "Выбери время на графике" : drawTool === "level" ? "Выбери высоту уровня" : drawStart ? "Выбери вторую точку" : "Выбери начало линии") + " · Esc — отмена · линии на время сеанса" : ""}</output>`;
+  controls.innerHTML = localizeUI`<div class="average-switch" role="group" aria-label="Средняя линия"><button id="show-average" aria-pressed="${showAverage}">MA</button>${[7, 14, 28].map((n) => `<button data-average="${n}" style="--average-color:${averageColors[n]}" aria-pressed="${showAverage && averagePeriods.includes(n)}">${n}</button>`).join("")}</div><button id="show-base" aria-pressed="${showBase}" title="Линия начального значения">База</button><button id="percent-axis" aria-pressed="${percentAxis}" title="Изменение относительно начального значения">%</button><button id="measure-tool" aria-pressed="${measuring}" title="Выбери две свечи, чтобы измерить участок">↔ Измерить</button><button id="show-volume" aria-pressed="${journal.settings.showVolume !== false}" title="Сумма изменений по модулю в каждой свече">Объём</button><output id="measure-output" aria-live="polite"></output><output id="drawing-status" aria-live="polite">${drawTool ? (drawTool === "vertical" ? localizeUI("Выбери время на графике") : drawTool === "level" ? localizeUI("Выбери высоту уровня") : drawStart ? localizeUI("Выбери вторую точку") : localizeUI("Выбери начало линии")) + localizeUI(" · Esc — отмена · линии на время сеанса") : ""}</output>`;
   const legend = $(".chart-bottom .legend");
   $(".chart-hint").replaceChildren();
   const status = document.createElement("span");
   status.id = "selection-status";
-  status.textContent = "Наведись на свечу · объём = сумма изменений по модулю";
+  status.textContent = localizeUI("Наведись на свечу · объём = сумма изменений по модулю");
   $(".chart-hint").append(status, legend);
   $(".chart-bottom").prepend(controls);
   $("#show-volume").onclick = async () => {
@@ -1367,10 +1375,10 @@ function drawChart() {
     $("#chart-svg").replaceChildren();
     $("#range-label").textContent =
       interval >= 1440
-        ? "Твоя история начинается с первой записи"
+        ? localizeUI("Твоя история начинается с первой записи")
         : fullDate(selected);
-    $("#range-change").textContent = "Нет событий";
-    empty.innerHTML = `<div class="empty-symbol">${icon("chart", 30)}</div><h2>${hasEvents ? "В этом периоде пока нет событий" : "Здесь начинается твой путь"}</h2><p>Добавь реальный момент.<br>График появится после записи.</p><button class="primary" id="first-event">${icon("plus", 17)} ${hasEvents ? "Добавить событие" : "Первое событие"}</button>`;
+    $("#range-change").textContent = localizeUI("Нет событий");
+    empty.innerHTML = localizeUI`<div class="empty-symbol">${icon("chart", 30)}</div><h2>${hasEvents ? localizeUI("В этом периоде пока нет событий") : localizeUI("Здесь начинается твой путь")}</h2><p>Добавь реальный момент.<br>График появится после записи.</p><button class="primary" id="first-event">${icon("plus", 17)} ${hasEvents ? localizeUI("Добавить событие") : localizeUI("Первое событие")}</button>`;
     $("#first-event").onclick = (e) => {
       e.stopPropagation();
       eventForm(null, interval >= 1440 ? localDate() : selected);
@@ -1468,7 +1476,7 @@ function drawChart() {
     ? `${linePath} L${x(visible.length - 1)} ${baselineY} L${x(0)} ${baselineY} Z`
     : "";
   const baselineBody = chartStyle === "baseline"
-    ? `<defs><clipPath id="above-base"><rect x="${left}" y="${top}" width="${pw}" height="${baselineY - top}"/></clipPath><clipPath id="below-base"><rect x="${left}" y="${baselineY}" width="${pw}" height="${height - bottom - baselineY}"/></clipPath></defs>${["up", "down"].map((color, i) => `<g clip-path="url(#${i ? "below" : "above"}-base)"><path d="${baselinePath}" fill="var(--${color})" opacity=".15"/><path d="${linePath}" fill="none" stroke="var(--${color})" stroke-width="2"/></g>`).join("")}<line x1="${left}" x2="${width - right}" y1="${baselineY}" y2="${baselineY}" class="base-line"/><text x="${left + 8}" y="${baselineY - 7}" class="axis-label">Опора ${axisText(high - ((baselineY - top) / ph) * (high - low))}</text>`
+    ? localizeUI`<defs><clipPath id="above-base"><rect x="${left}" y="${top}" width="${pw}" height="${baselineY - top}"/></clipPath><clipPath id="below-base"><rect x="${left}" y="${baselineY}" width="${pw}" height="${height - bottom - baselineY}"/></clipPath></defs>${["up", "down"].map((color, i) => `<g clip-path="url(#${i ? "below" : "above"}-base)"><path d="${baselinePath}" fill="var(--${color})" opacity=".15"/><path d="${linePath}" fill="none" stroke="var(--${color})" stroke-width="2"/></g>`).join("")}<line x1="${left}" x2="${width - right}" y1="${baselineY}" y2="${baselineY}" class="base-line"/><text x="${left + 8}" y="${baselineY - 7}" class="axis-label">Опора ${axisText(high - ((baselineY - top) / ph) * (high - low))}</text>`
     : "";
   const candleElevation =
     !denseCanvas && chartStyle === "candles"
@@ -1497,7 +1505,7 @@ function drawChart() {
   const volumeBody =
     !showVolume
       ? ""
-      : `<g id="volume-layer"><line x1="${left}" x2="${width - right}" y1="${volumeTop}" y2="${volumeTop}" class="grid-line"/><text x="${left + 6}" y="${volumeTop + 15}" class="axis-label">Объём</text><title>Объём — сумма изменений по модулю. Фон и переходы между событиями декоративные, в оборот не входят.</title>${volumeMarkup}</g>`;
+      : localizeUI`<g id="volume-layer"><line x1="${left}" x2="${width - right}" y1="${volumeTop}" y2="${volumeTop}" class="grid-line"/><text x="${left + 6}" y="${volumeTop + 15}" class="axis-label">Объём</text><title>Объём — сумма изменений по модулю. Фон и переходы между событиями декоративные, в оборот не входят.</title>${volumeMarkup}</g>`;
   const last = visible.at(-1),
     lineY = y(last.close);
   const filterDef = candleElevation
@@ -1548,7 +1556,7 @@ function drawChart() {
     candleLeft - left > 380
   ) {
     shortHistory.hidden = false;
-    shortHistory.innerHTML = `<strong>Свечей в истории: ${visible.length}</strong><p>Интервал ${TIMEFRAMES.find((t) => t[0] === interval)[1]} объединяет записи.<br>Больше подробностей — на интервале 15 минут.</p><button id="detail-days" class="secondary">Показать 15 минут →</button>`;
+    shortHistory.innerHTML = localizeUI`<strong>Свечей в истории: ${visible.length}</strong><p>Интервал ${TIMEFRAMES.find((t) => t[0] === interval)[1]} объединяет записи.<br>Больше подробностей — на интервале 15 минут.</p><button id="detail-days" class="secondary">Показать 15 минут →</button>`;
     $("#detail-days").onclick = () => {
       interval = 15;
       resetViewport();
@@ -1562,7 +1570,7 @@ function drawChart() {
     $(".activity-tabs").after(starterBanner);
   }
   starterBanner.hidden = !journal.settings.starter?.remaining;
-  starterBanner.innerHTML = `◇ Стартовый ритм · ${journal.settings.starter?.remaining ?? 0}/30 <button class="text-button" id="starter-add">Добавить свой момент +</button><button class="text-button" id="starter-hide">Скрыть стартовый ритм</button>`;
+  starterBanner.innerHTML = localizeUI`◇ Стартовый ритм · ${journal.settings.starter?.remaining ?? 0}/30 <button class="text-button" id="starter-add">Добавить свой момент +</button><button class="text-button" id="starter-hide">Скрыть стартовый ритм</button>`;
   $("#starter-add").onclick = () => eventForm();
   $("#starter-hide").onclick = async () => {
     try {
@@ -1586,11 +1594,11 @@ function drawChart() {
     ? (visible.flatMap((c) => c.events)[0]?.before ?? visible[0].open)
     : visible[0].open;
   $("#range-change").innerHTML =
-    `<span class="${direction(delta)}">${signed(delta)} <span class="muted">(${pct(percentage(delta, periodBase))})</span></span> <span class="muted">${visible[0].intraday ? "по записям" : "за период"}</span>`;
+    `<span class="${direction(delta)}">${signed(delta)} <span class="muted">(${pct(percentage(delta, periodBase))})</span></span> <span class="muted">${visible[0].intraday ? localizeUI("по записям") : localizeUI("за период")}</span>`;
 }
 function goToDate() {
   const d = modal(
-    `<h2>Перейти к дате</h2><p class="muted">Перемести график к нужному дню, сохранив длительность свечи.</p><form id="goto-date-form"><label>Дата<input type="date" name="date" min="1900-01-01" max="${localDate()}" value="${selected}" required></label><button class="primary" type="submit">Перейти</button></form>`,
+    localizeUI`<h2>Перейти к дате</h2><p class="muted">Перемести график к нужному дню, сохранив длительность свечи.</p><form id="goto-date-form"><label>Дата<input type="date" name="date" min="1900-01-01" max="${localDate()}" value="${selected}" required></label><button class="primary" type="submit">Перейти</button></form>`,
   );
   d.querySelector("form").onsubmit = (e) => {
     e.preventDefault();
@@ -1617,7 +1625,7 @@ function drawAnnotations() {
       d.type === "vertical"
         ? `<line class="drawn-vertical" x1="${px(d.time)}" x2="${px(d.time)}" y1="${top}" y2="${top + ph}" stroke="var(--accent)" stroke-width="1.5"/>`
         : d.type === "level"
-          ? `<g class="drawn-level"><line x1="${left}" x2="${left + pw}" y1="${y(d.value)}" y2="${y(d.value)}" stroke="var(--accent)" stroke-dasharray="7 4"/><text x="${left + 8}" y="${y(d.value) - 7}" fill="var(--accent)" font-size="12">Уровень ${axisText(d.value)}</text></g>`
+          ? localizeUI`<g class="drawn-level"><line x1="${left}" x2="${left + pw}" y1="${y(d.value)}" y2="${y(d.value)}" stroke="var(--accent)" stroke-dasharray="7 4"/><text x="${left + 8}" y="${y(d.value) - 7}" fill="var(--accent)" font-size="12">Уровень ${axisText(d.value)}</text></g>`
           : `<line class="drawn-trend" data-drawing-type="${d.type}" marker-end="${d.type === "arrow" ? "url(#trend-arrow)" : "none"}" x1="${px(d.a.time)}" y1="${y(d.a.value)}" x2="${px(d.b.time)}" y2="${y(d.b.value)}" stroke="var(--accent)" stroke-width="1.5"/>`,
     )
     .join(
@@ -1628,7 +1636,7 @@ function calendarAxisLabel(date) {
   const acrossYears =
     visible[0]?.date.slice(0, 4) !== visible.at(-1)?.date.slice(0, 4);
   return new Date(date + "T12:00:00").toLocaleDateString(
-    "ru-RU",
+    locale,
     interval === 525600
       ? { year: "numeric" }
       : interval >= 43200
@@ -1713,7 +1721,7 @@ function drawMeasurement() {
   if (!layer || !output || !geometry) return;
   layer.innerHTML = "";
   if (!measuring || measureStart === null) {
-    output.textContent = measuring ? "Выбери первую свечу" : "";
+    output.textContent = measuring ? localizeUI("Выбери первую свечу") : "";
     return;
   }
   const a = visualBars[measureStart],
@@ -1728,8 +1736,8 @@ function drawMeasurement() {
     minutes = Math.abs(barTime(b) - barTime(a));
   output.textContent =
     measureEnd === null
-      ? "Теперь выбери вторую свечу"
-      : `${signed(delta)} (${pct(percentage(delta, a.close))}) · ${Math.abs(measureEnd - measureStart)} свечей · ${minutes >= 1440 ? (minutes / 1440).toFixed(1) + " д" : Math.round((minutes / 60) * 10) / 10 + " ч"}`;
+      ? localizeUI("Теперь выбери вторую свечу")
+      : localizeUI`${signed(delta)} (${pct(percentage(delta, a.close))}) · ${Math.abs(measureEnd - measureStart)} свечей · ${minutes >= 1440 ? (minutes / 1440).toFixed(1) + localizeUI(" д") : Math.round((minutes / 60) * 10) / 10 + localizeUI(" ч")}`;
 }
 function drawDenseChartCanvas(canvas, bars, volumes, drawCandles) {
   const { width, height, left, top, pw, ph, x, y, step } = geometry;
@@ -1953,7 +1961,7 @@ function selectHover(index, lock = false, horizontalTravel = 0) {
   hover = index;
   if ($("#selection-status"))
     $("#selection-status").textContent =
-      `${visible[index].intraday ? visible[index].time : shortDate(visible[index].date)} · ${visible[index].events.length} событий${visible[index].recorded ? "" : " · рисунок не меняет итог; объём декоративный"}`;
+      localizeUI`${visible[index].intraday ? visible[index].time : shortDate(visible[index].date)} · ${visible[index].events.length} событий${visible[index].recorded ? "" : localizeUI(" · рисунок не меняет итог; объём декоративный")}`;
   pinned = lock;
   clearTimeout(hoverTimer);
   const c = visible[index],
@@ -1980,7 +1988,7 @@ function selectHover(index, lock = false, horizontalTravel = 0) {
     card.className = "hover-card";
     card.setAttribute("role", "region");
     card.setAttribute("aria-live", "polite");
-    card.setAttribute("aria-label", "Описание выбранного дня");
+    card.setAttribute("aria-label", localizeUI("Описание выбранного дня"));
     $("#chart").append(card);
 
     card.onmouseleave = () => {
@@ -2010,21 +2018,21 @@ function selectHover(index, lock = false, horizontalTravel = 0) {
       180,
       Math.min(pinned ? 480 : 218, innerHeight - $("#chart").getBoundingClientRect().top - 42),
     ) + "px";
-  card.innerHTML = `<div class="hover-top"><span>${c.aggregate ? shortDate(c.date) + " — " + fullDate(c.endDate) : fullDate(c.date)}</span><span>${pinned ? "ЗАКРЕПЛЕНО" : c.aggregate ? "ТВОЙ ПЕРИОД" : "ТВОЙ ДЕНЬ"}</span></div><h3>${esc(candleTitle(c))}</h3><div class="hover-delta ${direction(c.delta)}">${signed(c.delta)} <small>(${pct(c.percent)})</small></div>${c.percent === null ? '<p class="micro">Процент не определён: начальное значение равно нулю.</p>' : ""}${c.note ? `<p class="hover-note">${esc(c.note)}</p>` : ""}<div class="hover-events">${c.events.map((e) => `<div><span>${c.aggregate ? shortDate(e.date) + " · " : ""}${esc(e.text)}</span><strong class="${direction(e.delta)}">${signed(e.delta)} <small>(${pct(e.percent)})</small></strong></div>`).join("") || `<p class="muted">${c.recorded ? "День сохранён без событий." : "В этот день пока нет записей."}</p>`}</div><div class="hover-ohlc"><span>Начало <b>${fmt(c.open)}</b></span><span>Итог <b>${fmt(c.close)}</b></span><span>Мин. <b>${fmt(c.low)}</b></span><span>Макс. <b>${fmt(c.high)}</b></span></div><button id="open-hover-day" class="text-button">Открыть день ${icon("right", 13)}</button>`;
+  card.innerHTML = localizeUI`<div class="hover-top"><span>${c.aggregate ? shortDate(c.date) + " — " + fullDate(c.endDate) : fullDate(c.date)}</span><span>${pinned ? localizeUI("ЗАКРЕПЛЕНО") : c.aggregate ? localizeUI("ТВОЙ ПЕРИОД") : localizeUI("ТВОЙ ДЕНЬ")}</span></div><h3>${esc(candleTitle(c))}</h3><div class="hover-delta ${direction(c.delta)}">${signed(c.delta)} <small>(${pct(c.percent)})</small></div>${c.percent === null ? localizeUI('<p class="micro">Процент не определён: начальное значение равно нулю.</p>') : ""}${c.note ? `<p class="hover-note">${esc(c.note)}</p>` : ""}<div class="hover-events">${c.events.map((e) => `<div><span>${c.aggregate ? shortDate(e.date) + " · " : ""}${esc(e.text)}</span><strong class="${direction(e.delta)}">${signed(e.delta)} <small>(${pct(e.percent)})</small></strong></div>`).join("") || `<p class="muted">${c.recorded ? localizeUI("День сохранён без событий.") : localizeUI("В этот день пока нет записей.")}</p>`}</div><div class="hover-ohlc"><span>Начало <b>${fmt(c.open)}</b></span><span>Итог <b>${fmt(c.close)}</b></span><span>Мин. <b>${fmt(c.low)}</b></span><span>Макс. <b>${fmt(c.high)}</b></span></div><button id="open-hover-day" class="text-button">Открыть день ${icon("right", 13)}</button>`;
   if (chartStyle === "heikin") {
     const explanation = document.createElement("p");
     explanation.className = "interpolation-note";
     explanation.textContent =
-      "Heikin Ashi сглаживает рисунок свечей. Здесь показаны реальные значения и события.";
+      localizeUI("Heikin Ashi сглаживает рисунок свечей. Здесь показаны реальные значения и события.");
     card.querySelector("h3").after(explanation);
   }
   if (c.intraday) {
     card.querySelector(".hover-top").innerHTML =
-      `<span>${shortDate(c.date)} · ${c.time}–${c.endTime}</span><span>${pinned ? "ЗАКРЕПЛЕНО" : "ВНУТРИ ДНЯ"}</span>`;
+      `<span>${shortDate(c.date)} · ${c.time}–${c.endTime}</span><span>${pinned ? localizeUI("ЗАКРЕПЛЕНО") : localizeUI("ВНУТРИ ДНЯ")}</span>`;
     if (!c.recorded)
       card.querySelector("h3").textContent = c.synthetic
-        ? "Промежутки"
-        : "Без новых событий";
+        ? localizeUI("Промежутки")
+        : localizeUI("Без новых событий");
     if (c.recorded) {
       const actualPercent = percentage(
         c.realDelta,
@@ -2039,7 +2047,7 @@ function selectHover(index, lock = false, horizontalTravel = 0) {
       const note = document.createElement("p");
       note.className = "interpolation-note";
       note.textContent =
-        "Визуальная интерполяция. Эти колебания не меняют итог дня.";
+        localizeUI("Визуальная интерполяция. Эти колебания не меняют итог дня.");
       card.querySelector(".hover-delta").after(note);
     }
   }
@@ -2055,41 +2063,41 @@ function selectHover(index, lock = false, horizontalTravel = 0) {
       next = observations[lo];
     const context = document.createElement("div");
     context.className = "moment-context";
-    context.innerHTML = `<p><b>Предыдущее событие</b><br>${previous ? `${shortDate(previous.date)} ${previous.time} · ${esc(previous.text)}` : "Начало истории"}</p><p><b>Следующее событие</b><br>${next ? `${shortDate(next.date)} ${next.time} · ${esc(next.text)}` : "Пока не записано"}</p>`;
+    context.innerHTML = localizeUI`<p><b>Предыдущее событие</b><br>${previous ? `${shortDate(previous.date)} ${previous.time} · ${esc(previous.text)}` : localizeUI("Начало истории")}</p><p><b>Следующее событие</b><br>${next ? `${shortDate(next.date)} ${next.time} · ${esc(next.text)}` : localizeUI("Пока не записано")}</p>`;
     card.querySelector(".hover-events").replaceChildren(context);
     if (groupMoments) {
       const first = visible[firstMoment],
         last = visible[lastMoment];
-      card.querySelector("h3").textContent = "Промежутки · весь участок";
+      card.querySelector("h3").textContent = localizeUI("Промежутки · весь участок");
       card.querySelector(".hover-top span").textContent =
-        `${previous ? shortDate(previous.date) + " " + previous.time : "Начало"} — ${next ? shortDate(next.date) + " " + next.time : "сейчас"}`;
+        `${previous ? shortDate(previous.date) + " " + previous.time : localizeUI("Начало")} — ${next ? shortDate(next.date) + " " + next.time : localizeUI("сейчас")}`;
       card
         .querySelector(".hover-delta")
         .insertAdjacentHTML(
           "beforebegin",
-          `<p class="visual-label">ВИЗУАЛЬНАЯ СВЕЧА · ${c.time}–${c.endTime}</p>`,
+          localizeUI`<p class="visual-label">ВИЗУАЛЬНАЯ СВЕЧА · ${c.time}–${c.endTime}</p>`,
         );
       card.querySelector(".hover-ohlc").innerHTML =
-        `<span>Начало <b>${fmt(first.open)}</b></span><span>Итог <b>${fmt(last.close)}</b></span><span>Свечей <b>${lastMoment - firstMoment + 1}</b></span>`;
+        localizeUI`<span>Начало <b>${fmt(first.open)}</b></span><span>Итог <b>${fmt(last.close)}</b></span><span>Свечей <b>${lastMoment - firstMoment + 1}</b></span>`;
     }
   }
   if (c.starter) {
-    card.querySelector("h3").textContent = "Стартовый ритм";
+    card.querySelector("h3").textContent = localizeUI("Стартовый ритм");
     card.querySelector(".interpolation-note").textContent =
-      "Временный рисунок, не событие. Новая запись убирает одну стартовую свечу. Итог не меняется.";
+      localizeUI("Временный рисунок, не событие. Новая запись убирает одну стартовую свечу. Итог не меняется.");
     card.querySelector(".hover-events").innerHTML = "";
   }
   const pinButton = document.createElement("button");
   pinButton.id = "pin-hover";
   pinButton.className = "text-button";
   pinButton.textContent = pinned
-    ? "Открепить карточку"
-    : "Закрепить карточку · ПКМ";
+    ? localizeUI("Открепить карточку")
+    : localizeUI("Закрепить карточку · ПКМ");
   pinButton.onclick = (e) => {
     e.stopPropagation();
     selectHover(index, !pinned);
   };
-  pinButton.textContent = pinned ? "Открепить" : "Закрепить";
+  pinButton.textContent = pinned ? localizeUI("Открепить") : localizeUI("Закрепить");
   card.classList.toggle("reading-card", pinned);
   card.querySelector(".hover-top span:last-child").replaceWith(pinButton);
   const body = document.createElement("div");
@@ -2114,7 +2122,7 @@ function selectHover(index, lock = false, horizontalTravel = 0) {
 function openDayDetails(date) {
   const day = dayData(date);
   const dialog = modal(
-    `<div class="modal-eyebrow">${fullDate(date)}</div><h2>${esc(day.title || "События дня")}</h2>${day.note ? `<p class="day-detail-note">${esc(day.note)}</p>` : ""}${dayTotalMarkup(day)}<div class="day-detail-events">${eventRows(day) || "<p>В этот день нет событий.</p>"}</div><div class="form-footer"><button id="detail-note" class="secondary">Описание дня</button><button id="detail-add" class="primary">Добавить событие</button></div>`,
+    localizeUI`<div class="modal-eyebrow">${fullDate(date)}</div><h2>${esc(day.title || localizeUI("События дня"))}</h2>${day.note ? `<p class="day-detail-note">${esc(day.note)}</p>` : ""}${dayTotalMarkup(day)}<div class="day-detail-events">${eventRows(day) || localizeUI("<p>В этот день нет событий.</p>")}</div><div class="form-footer"><button id="detail-note" class="secondary">Описание дня</button><button id="detail-add" class="primary">Добавить событие</button></div>`,
   );
   dialog.classList.add("day-detail-modal");
   bindEventActions(dialog);
@@ -2310,8 +2318,8 @@ function bindChart() {
   };
   setHelp(
     $("#group-moments"),
-    "Промежутки",
-    "Включи, чтобы подсвечивать весь промежуток без новых событий. Выключи для выбора одной свечи. В карточке показаны соседние реальные записи.",
+    localizeUI("Промежутки"),
+    localizeUI("Включи, чтобы подсвечивать весь промежуток без новых событий. Выключи для выбора одной свечи. В карточке показаны соседние реальные записи."),
   );
   const chart = $("#chart");
   const beginChartDrag = (e) => {
@@ -2560,7 +2568,7 @@ function bindChart() {
         return;
       } else {
         if (point.time === drawStart.time) {
-          toast("Выбери другую свечу для второй точки");
+          toast(localizeUI("Выбери другую свечу для второй точки"));
           return;
         }
         rememberTools();
@@ -2680,7 +2688,7 @@ function bindChart() {
       chooseDay(visible[hover].endDate ?? visible[hover].date);
       renderDay();
       renderLedger();
-    } else if (e.key.toLowerCase() === "p" || e.key.toLowerCase() === "з") {
+    } else if (e.key.toLowerCase() === "p" || e.key.toLowerCase() === localizeUI("з")) {
       e.preventDefault();
       selectHover(index, !pinned);
     } else if (e.key === "+" || e.key === "=") {
@@ -2734,7 +2742,7 @@ function eventRows(day, editable = true) {
   return rows
     .map(
       (e, index) =>
-        `<div class="event-row" data-event-id="${e.id}"><span class="event-dot ${direction(e.delta)}">${e.delta >= 0 ? "+" : "−"}</span><div class="event-content">${eventTitleMarkup(e)}<span class="event-time">${esc(e.time ?? "12:00")}</span><span class="event-amount ${direction(e.delta)}"><span class="event-points">${signed(e.delta)}</span><span class="event-percent">(${pct(e.percent)})</span></span>${e.percent === null ? '<span class="micro">База 0: процент не определён</span>' : ""}${editable ? `<div class="event-actions"><button class="text-button" data-edit="${e.id}">Изменить</button>${chronological ? `<button class="icon-button tiny" data-move="${e.id}" data-step="-1" aria-label="Переместить событие выше, обменять время с предыдущим" ${index === 0 ? "disabled" : ""}>${icon("up", 13)}</button><button class="icon-button tiny" data-move="${e.id}" data-step="1" aria-label="Переместить событие ниже, обменять время со следующим" ${index === day.events.length - 1 ? "disabled" : ""}>${icon("down", 13)}</button>` : ""}<button class="icon-button tiny danger-text" data-delete="${e.id}" aria-label="Удалить событие">${icon("trash", 13)}</button></div>` : ""}</div></div>`,
+        `<div class="event-row" data-event-id="${e.id}"><span class="event-dot ${direction(e.delta)}">${e.delta >= 0 ? "+" : "−"}</span><div class="event-content">${eventTitleMarkup(e)}<span class="event-time">${esc(e.time ?? "12:00")}</span><span class="event-amount ${direction(e.delta)}"><span class="event-points">${signed(e.delta)}</span><span class="event-percent">(${pct(e.percent)})</span></span>${e.percent === null ? localizeUI('<span class="micro">База 0: процент не определён</span>') : ""}${editable ? localizeUI`<div class="event-actions"><button class="text-button" data-edit="${e.id}">Изменить</button>${chronological ? localizeUI`<button class="icon-button tiny" data-move="${e.id}" data-step="-1" aria-label="Переместить событие выше, обменять время с предыдущим" ${index === 0 ? "disabled" : ""}>${icon("up", 13)}</button><button class="icon-button tiny" data-move="${e.id}" data-step="1" aria-label="Переместить событие ниже, обменять время со следующим" ${index === day.events.length - 1 ? "disabled" : ""}>${icon("down", 13)}</button>` : ""}<button class="icon-button tiny danger-text" data-delete="${e.id}" aria-label="Удалить событие">${icon("trash", 13)}</button></div>` : ""}</div></div>`,
     )
     .join("");
 }
@@ -2748,7 +2756,7 @@ function eventTitleMarkup(event) {
   return `<p class="quick-move-title">${esc(title)} <span class="quick-move-counter" aria-label="x${count}" aria-live="polite" aria-atomic="true">(x<span class="quick-move-count-value" data-count="${count}">${count}</span>)</span></p>`;
 }
 function dayTotalMarkup(day) {
-  return `<div class="day-total"><span>Итог дня</span><strong class="${direction(day.delta)}"><span class="day-total-change">${signed(day.delta)}</span> <small>(<span class="day-total-percent">${pct(day.percent)}</span>)</small></strong></div>`;
+  return localizeUI`<div class="day-total"><span>Итог дня</span><strong class="${direction(day.delta)}"><span class="day-total-change">${signed(day.delta)}</span> <small>(<span class="day-total-percent">${pct(day.percent)}</span>)</small></strong></div>`;
 }
 function animateNumberText(element, fromText, toText, move = "up") {
   if (!element || fromText === toText) return;
@@ -2810,13 +2818,13 @@ function renderDay() {
   const d = dayData(selected);
   const isFavorite = (journal.settings.favoriteDays ?? []).includes(selected);
   $("#day-panel").innerHTML =
-    `<div class="day-heading"><span class="eyebrow"><b class="section-prefix">//</b> ${selected === localDate() ? "СЕГОДНЯ" : "ВЫБРАННЫЙ ДЕНЬ"}</span><div class="day-heading-actions"><button class="icon-button small favorite-day-toggle ${isFavorite ? "active" : ""}" id="favorite-day" aria-label="${isFavorite ? "Убрать день из избранного" : "Добавить день в избранное"}" title="${isFavorite ? "В избранном" : "Добавить в избранное"}" aria-pressed="${isFavorite}">${isFavorite ? "★" : "☆"}</button><button class="icon-button small" id="edit-day" aria-label="Редактировать описание дня">${icon("edit", 16)}</button></div></div><label class="date-picker-label"><input id="selected-date" type="date" min="1900-01-01" max="${localDate()}" value="${selected}" aria-label="Выбрать день"></label><h2>${esc(d.title || "Каким был твой день?")}</h2><p class="day-description ${d.note ? "" : "muted"}">${esc(d.note || dailyPromptFor(selected))}</p>${dayTotalMarkup(d)}<div class="events-heading"><span>СОБЫТИЯ</span><span>${d.events.length.toString().padStart(2, "0")}</span></div><div class="day-events">${eventRows(d) || '<div class="no-events">Небольшой шаг, важная встреча<br>или просто момент для себя.</div>'}</div><button class="add-day-event" id="add-selected">${icon("plus", 16)} Добавить событие</button>`;
+    localizeUI`<div class="day-heading"><span class="eyebrow"><b class="section-prefix">//</b> ${selected === localDate() ? localizeUI("СЕГОДНЯ") : localizeUI("ВЫБРАННЫЙ ДЕНЬ")}</span><div class="day-heading-actions"><button class="icon-button small favorite-day-toggle ${isFavorite ? "active" : ""}" id="favorite-day" aria-label="${isFavorite ? localizeUI("Убрать день из избранного") : localizeUI("Добавить день в избранное")}" title="${isFavorite ? localizeUI("В избранном") : localizeUI("Добавить в избранное")}" aria-pressed="${isFavorite}">${isFavorite ? "★" : "☆"}</button><button class="icon-button small" id="edit-day" aria-label="Редактировать описание дня">${icon("edit", 16)}</button></div></div><label class="date-picker-label"><input id="selected-date" type="date" min="1900-01-01" max="${localDate()}" value="${selected}" aria-label="Выбрать день"></label><h2>${esc(d.title || localizeUI("Каким был твой день?"))}</h2><p class="day-description ${d.note ? "" : "muted"}">${esc(d.note || dailyPromptFor(selected))}</p>${dayTotalMarkup(d)}<div class="events-heading"><span>СОБЫТИЯ</span><span>${d.events.length.toString().padStart(2, "0")}</span></div><div class="day-events">${eventRows(d) || localizeUI('<div class="no-events">Небольшой шаг, важная встреча<br>или просто момент для себя.</div>')}</div><button class="add-day-event" id="add-selected">${icon("plus", 16)} Добавить событие</button>`;
   $("#favorite-day").onclick = () => toggleFavoriteDay(selected);
   $("#edit-day").onclick = () => dayForm(selected);
   setHelp(
     $("#edit-day"),
-    "Название и заметка · " + fullDate(selected),
-    "Открыть описание дня, который указан в календаре под этой кнопкой.",
+    localizeUI("Название и заметка · ") + fullDate(selected),
+    localizeUI("Открыть описание дня, который указан в календаре под этой кнопкой."),
   );
   $("#selected-date").onchange = (e) => {
     if (!e.target.value) return;
@@ -2849,7 +2857,7 @@ async function toggleFavoriteDay(date) {
 }
 function journalLayout() {
   const list = candles.slice().reverse();
-  return `<section class="journal-panel ambient"><div class="journal-heading"><div><h2>Дни, из которых ты состоишь</h2><p>${list.length} дней с записями · вся твоя история</p></div><input id="journal-search" type="search" placeholder="Найти событие или день…" aria-label="Поиск по дневнику"></div><div id="journal-list"></div><button class="secondary" id="load-more" hidden>Показать ещё</button></section>`;
+  return localizeUI`<section class="journal-panel ambient"><div class="journal-heading"><div><h2>Дни, из которых ты состоишь</h2><p>${list.length} дней с записями · вся твоя история</p></div><input id="journal-search" type="search" placeholder="Найти событие или день…" aria-label="Поиск по дневнику"></div><div id="journal-list"></div><button class="secondary" id="load-more" hidden>Показать ещё</button></section>`;
 }
 let journalLimit = 30;
 function bindJournal() {
@@ -2866,14 +2874,14 @@ function bindJournal() {
   renderJournalList();
 }
 function renderJournalList() {
-  const query = $("#journal-search").value.toLocaleLowerCase("ru");
+  const query = $("#journal-search").value.toLocaleLowerCase(locale);
   const days = candles
     .slice()
     .reverse()
     .filter((d) =>
       [d.date, d.title, d.note, ...d.events.map((e) => e.text)]
         .join(" ")
-        .toLocaleLowerCase("ru")
+        .toLocaleLowerCase(locale)
         .includes(query),
     );
   $("#journal-list").innerHTML =
@@ -2881,10 +2889,10 @@ function renderJournalList() {
       .slice(0, journalLimit)
       .map(
         (d) =>
-          `<article class="journal-day"><div class="journal-date"><span>${new Date(d.date + "T12:00:00").getDate()}</span><small>${new Date(d.date + "T12:00:00").toLocaleDateString("ru", { month: "short", year: "numeric" })}</small></div><div class="journal-copy"><div class="journal-title"><h3>${esc(d.title || "Ещё один день твоей истории")}</h3><strong class="${direction(d.delta)}">${signed(d.delta)} <small>(${pct(d.percent)})</small></strong></div>${d.note ? `<p>${esc(d.note)}</p>` : ""}<div class="journal-event-list">${d.events.map((e) => `<div><span>${esc(e.text)}</span><strong class="${direction(e.delta)}">${signed(e.delta)} <small>(${pct(e.percent)})</small></strong></div>`).join("") || '<span class="muted">Заметка без событий</span>'}</div><button class="text-button" data-open-day="${d.date}">Открыть день ${icon("right", 13)}</button></div></article>`,
+          localizeUI`<article class="journal-day"><div class="journal-date"><span>${new Date(d.date + "T12:00:00").getDate()}</span><small>${new Date(d.date + "T12:00:00").toLocaleDateString(locale, { month: "short", year: "numeric" })}</small></div><div class="journal-copy"><div class="journal-title"><h3>${esc(d.title || localizeUI("Ещё один день твоей истории"))}</h3><strong class="${direction(d.delta)}">${signed(d.delta)} <small>(${pct(d.percent)})</small></strong></div>${d.note ? `<p>${esc(d.note)}</p>` : ""}<div class="journal-event-list">${d.events.map((e) => `<div><span>${esc(e.text)}</span><strong class="${direction(e.delta)}">${signed(e.delta)} <small>(${pct(e.percent)})</small></strong></div>`).join("") || localizeUI('<span class="muted">Заметка без событий</span>')}</div><button class="text-button" data-open-day="${d.date}">Открыть день ${icon("right", 13)}</button></div></article>`,
       )
       .join("") ||
-    `<div class="empty-journal"><h3>${query ? "Ничего не нашлось" : "История ещё впереди"}</h3><p>${query ? "Попробуй другие слова." : "Добавь первое событие или опиши сегодняшний день."}</p></div>`;
+    `<div class="empty-journal"><h3>${query ? localizeUI("Ничего не нашлось") : localizeUI("История ещё впереди")}</h3><p>${query ? localizeUI("Попробуй другие слова.") : localizeUI("Добавь первое событие или опиши сегодняшний день.")}</p></div>`;
   $("#load-more").hidden = days.length <= journalLimit;
   document.querySelectorAll("[data-open-day]").forEach(
     (b) =>
@@ -2942,13 +2950,13 @@ async function renderHome() {
   theme();
   const graphId = journal?.id;
   $("#app").innerHTML =
-    `<div class="shell">${header()}<main class="home-screen"><p class="muted">Открываю твои графики…</p></main></div>`;
+    localizeUI`<div class="shell">${header()}<main class="home-screen"><p class="muted">Открываю твои графики…</p></main></div>`;
   bindShell();
   try {
     const graphs = await api.graphs();
     if (view !== "home" || journal?.id !== graphId) return;
     $(".home-screen").innerHTML =
-      `<div class="home-heading"><div><span class="eyebrow">ТВОЁ ПРОСТРАНСТВО</span><h1>Мои графики</h1><p>Отдельные истории в одном месте.</p></div><button class="primary" id="new-graph">${icon("plus", 17)} Новый график</button></div><div class="graph-library">${graphs.map((g) => `<article class="graph-card ${g.active ? "current-graph" : ""}"><details class="graph-actions"><summary aria-label="Действия с графиком ${esc(g.name)}">${icon("settings", 18)}</summary><button class="text-button" data-edit-graph="${esc(g.id)}">Настройки</button><button class="danger" data-delete-graph="${esc(g.id)}">Удалить график</button></details><span class="eyebrow">${g.active ? "ТЕКУЩИЙ ГРАФИК" : "ГРАФИК ЖИЗНИ"}</span><h2>${esc(g.name)}</h2><p>${g.events} событий · начало ${fmt(g.initial)}</p><button class="secondary" data-open-graph="${esc(g.id)}">${g.active ? "Продолжить" : "Открыть"} ${icon("arrow", 15)}</button></article>`).join("")}</div><div class="home-tools"><div><h3>Посмотреть пример</h3><p>Демонстрационный график не меняет твои записи.</p><button class="secondary" id="home-demo">Открыть демо</button></div><div class="archive-entry"><h3>Недавно удалённые</h3><p>Графики можно восстановить в течение 30 дней.</p><button class="secondary" id="open-trash">Открыть архив</button></div></div>`;
+      localizeUI`<div class="home-heading"><div><span class="eyebrow">ТВОЁ ПРОСТРАНСТВО</span><h1>Мои графики</h1><p>Отдельные истории в одном месте.</p></div><button class="primary" id="new-graph">${icon("plus", 17)} Новый график</button></div><div class="graph-library">${graphs.map((g) => localizeUI`<article class="graph-card ${g.active ? "current-graph" : ""}"><details class="graph-actions"><summary aria-label="Действия с графиком ${esc(g.name)}">${icon("settings", 18)}</summary><button class="text-button" data-edit-graph="${esc(g.id)}">Настройки</button><button class="danger" data-delete-graph="${esc(g.id)}">Удалить график</button></details><span class="eyebrow">${g.active ? localizeUI("ТЕКУЩИЙ ГРАФИК") : localizeUI("ГРАФИК ЖИЗНИ")}</span><h2>${esc(g.name)}</h2><p>${g.events} событий · начало ${fmt(g.initial)}</p><button class="secondary" data-open-graph="${esc(g.id)}">${g.active ? localizeUI("Продолжить") : localizeUI("Открыть")} ${icon("arrow", 15)}</button></article>`).join("")}</div><div class="home-tools"><div><h3>Посмотреть пример</h3><p>Демонстрационный график не меняет твои записи.</p><button class="secondary" id="home-demo">Открыть демо</button></div><div class="archive-entry"><h3>Недавно удалённые</h3><p>Графики можно восстановить в течение 30 дней.</p><button class="secondary" id="open-trash">Открыть архив</button></div></div>`;
     document
       .querySelectorAll("[data-delete-graph]")
       .forEach(
@@ -3010,7 +3018,7 @@ async function renderHome() {
 }
 function deleteGraphForm(graph) {
   modal(
-    `<div class="modal-eyebrow">МОИ ГРАФИКИ</div><h2>Удалить «${esc(graph.name)}»?</h2><p class="modal-description">${graph.events} событий будут убраны вместе с графиком. График останется в архиве на 30 дней. До истечения срока его можно восстановить из меню.</p><p class="form-error" role="alert"></p><div class="form-footer"><button class="secondary" id="keep-graph">Оставить</button><button class="danger" id="confirm-delete-graph">Удалить график</button></div>`,
+    localizeUI`<div class="modal-eyebrow">МОИ ГРАФИКИ</div><h2>Удалить «${esc(graph.name)}»?</h2><p class="modal-description">${graph.events} событий будут убраны вместе с графиком. График останется в архиве на 30 дней. До истечения срока его можно восстановить из меню.</p><p class="form-error" role="alert"></p><div class="form-footer"><button class="secondary" id="keep-graph">Оставить</button><button class="danger" id="confirm-delete-graph">Удалить график</button></div>`,
     { enterConfirm: "#confirm-delete-graph" },
   );
   $("#keep-graph").onclick = closeModal;
@@ -3026,9 +3034,9 @@ function deleteGraphForm(graph) {
       resetViewport();
       view = "home";
       render();
-      toast("График удалён. Копия сохранена.");
+      toast(localizeUI("График удалён. Копия сохранена."));
     } catch (e) {
-      $(".form-error").textContent = e.message;
+      $(".form-error").textContent = localizeUI(e.message);
       $("#confirm-delete-graph").disabled = false;
     } finally {
       busy = pendingSaves > 0;
@@ -3038,7 +3046,7 @@ function deleteGraphForm(graph) {
 async function applicationForm(first = false) {
   const prefs = await api.preferences();
   const d = modal(
-    `<div class="modal-eyebrow">${first ? "ПЕРВЫЙ ЗАПУСК" : "ПРИЛОЖЕНИЕ"}</div><h2>Как запускать High.</h2><p class="modal-description">Дневники и темы сохраняются на этом устройстве. Эти настройки можно изменить позже.</p><form id="application-form"><label class="check-row"><input name="autoStart" type="checkbox" ${prefs.autoStart ? "checked" : ""}> ${prefs.platform === "win32" ? "Запускать вместе с Windows" : "Запускать при входе в систему"}</label><label class="check-row" id="first-run-tray-row" ${prefs.autoStart ? "" : "hidden"}><input name="tray" type="checkbox" ${prefs.autoStart && prefs.tray ? "checked" : ""}> При автозапуске открывать в трее</label><p class="micro">Обычный запуск из ярлыка всегда открывает полное окно.</p>${prefs.platform === "darwin" ? `<input name="shortcut" type="hidden" value="false">` : `<label class="check-row"><input name="shortcut" type="checkbox"> Создать ярлык на рабочем столе</label>`}<label class="check-row" ${prefs.portable ? "hidden" : ""}><input name="autoUpdates" type="checkbox" ${prefs.autoUpdates ? "checked" : ""}> Проверять обновления автоматически</label><p class="micro">Дневник работает без сети. Интернет нужен только для проверки обновлений и синхронизации по твоему запросу. Обновление устанавливается после твоего подтверждения.</p><p class="form-error" role="alert"></p><button type="submit" class="primary full-width">${first ? "Продолжить" : "Сохранить"}</button></form>`,
+    localizeUI`<div class="modal-eyebrow">${first ? localizeUI("ПЕРВЫЙ ЗАПУСК") : localizeUI("ПРИЛОЖЕНИЕ")}</div><h2>Как запускать High.</h2><p class="modal-description">Дневники и темы сохраняются на этом устройстве. Эти настройки можно изменить позже.</p><form id="application-form"><label class="check-row"><input name="autoStart" type="checkbox" ${prefs.autoStart ? "checked" : ""}> ${prefs.platform === "win32" ? localizeUI("Запускать вместе с Windows") : localizeUI("Запускать при входе в систему")}</label><label class="check-row" id="first-run-tray-row" ${prefs.autoStart ? "" : "hidden"}><input name="tray" type="checkbox" ${prefs.autoStart && prefs.tray ? "checked" : ""}> При автозапуске открывать в трее</label><p class="micro">Обычный запуск из ярлыка всегда открывает полное окно.</p>${prefs.platform === "darwin" ? `<input name="shortcut" type="hidden" value="false">` : localizeUI`<label class="check-row"><input name="shortcut" type="checkbox"> Создать ярлык на рабочем столе</label>`}<label class="check-row" ${prefs.portable ? "hidden" : ""}><input name="autoUpdates" type="checkbox" ${prefs.autoUpdates ? "checked" : ""}> Проверять обновления автоматически</label><p class="micro">Дневник работает без сети. Интернет нужен только для проверки обновлений и синхронизации по твоему запросу. Обновление устанавливается после твоего подтверждения.</p><p class="form-error" role="alert"></p><button type="submit" class="primary full-width">${first ? localizeUI("Продолжить") : localizeUI("Сохранить")}</button></form>`,
   );
   const form = d.querySelector("form");
   form.elements.tray.disabled = !form.elements.autoStart.checked;
@@ -3072,7 +3080,7 @@ async function applicationForm(first = false) {
 }
 async function updatesForm() {
   const d = modal(
-    `<div class="modal-eyebrow" data-current-version>High. __APP_VERSION__</div><h2>Обновления</h2><p id="update-status" role="status">Проверяю состояние…</p><div class="update-actions"><button class="secondary" id="check-update">Проверить обновления</button><button class="primary" id="get-update" hidden>Загрузить</button></div><h3>История версий</h3><div id="release-history"></div><button class="text-button" id="application-settings">Настройки запуска и трея</button>`,
+    localizeUI`<div class="modal-eyebrow" data-current-version>High. __APP_VERSION__</div><h2>Обновления</h2><p id="update-status" role="status">Проверяю состояние…</p><div class="update-actions"><button class="secondary" id="check-update">Проверить обновления</button><button class="primary" id="get-update" hidden>Загрузить</button></div><h3>История версий</h3><div id="release-history"></div><button class="text-button" id="application-settings">Настройки запуска и трея</button>`,
   );
   const paint = (state) => {
     if (!d.isConnected) return;
@@ -3082,9 +3090,9 @@ async function updatesForm() {
     d.querySelector("#release-history").innerHTML = state.history
       .map(
         (r) =>
-          `<article class="release-row"><b>${esc(r.version)}</b><p>${esc(r.notes)}</p></article>`,
+          `<article class="release-row"><b>${esc(r.version)}</b><p>${esc(language === "en" ? (ENGLISH_RELEASE_NOTES[r.version] ?? localizeUI(r.notes)) : r.notes)}</p></article>`,
       )
-      .join("") || '<p class="release-history-empty">История версий пока недоступна.</p>';
+      .join("") || localizeUI('<p class="release-history-empty">История версий пока недоступна.</p>');
     d.querySelector("#check-update").disabled = [
       "checking",
       "downloading",
@@ -3093,8 +3101,8 @@ async function updatesForm() {
     get.hidden = !["available", "downloaded"].includes(state.state);
     get.textContent =
       state.state === "downloaded"
-        ? "Перезапустить и обновить"
-        : "Загрузить обновление";
+        ? localizeUI("Перезапустить и обновить")
+        : localizeUI("Загрузить обновление");
     get.onclick = async () => {
       get.disabled = true;
       if (state.state === "downloaded") {
@@ -3124,7 +3132,7 @@ async function updatesForm() {
 }
 async function trashForm() {
   const d = modal(
-    `<h2>Недавно удалённые</h2><p class="modal-description">Восстановление доступно 30 дней после удаления.</p><div id="trash-list">Открываю архив…</div><p class="form-error" role="alert"></p>`,
+    localizeUI`<h2>Недавно удалённые</h2><p class="modal-description">Восстановление доступно 30 дней после удаления.</p><div id="trash-list">Открываю архив…</div><p class="form-error" role="alert"></p>`,
   );
   try {
     const items = await api.trash();
@@ -3132,10 +3140,10 @@ async function trashForm() {
       ? items
           .map(
             (g) =>
-              `<article class="trash-row"><div><b>${esc(g.name)}</b><p>${g.events} событий · до ${fullDate(g.expiresAt.slice(0, 10))}</p></div><button class="secondary" data-restore="${esc(g.id)}">Восстановить</button></article>`,
+              localizeUI`<article class="trash-row"><div><b>${esc(g.name)}</b><p>${g.events} событий · до ${fullDate(g.expiresAt.slice(0, 10))}</p></div><button class="secondary" data-restore="${esc(g.id)}">Восстановить</button></article>`,
           )
           .join("")
-      : `<p class="micro">Архив пуст.</p>`;
+      : localizeUI`<p class="micro">Архив пуст.</p>`;
     d.querySelectorAll("[data-restore]").forEach(
       (b) =>
         (b.onclick = async () => {
@@ -3149,7 +3157,7 @@ async function trashForm() {
             resetViewport();
             closeModal();
             render();
-            toast("График восстановлен");
+            toast(localizeUI("График восстановлен"));
           } catch (e) {
             d.querySelector(".form-error").textContent = e.message;
             b.disabled = false;
@@ -3162,7 +3170,7 @@ async function trashForm() {
 }
 function coinForm(welcome = false) {
   const d = modal(
-    `<div class="modal-eyebrow">${welcome ? "ГРАФИК ГОТОВ" : "ЛИЧНЫЙ ЗНАК"}</div><h2>${welcome ? "Настроим монетку?" : "Монетка графика"}</h2><p class="modal-description">${welcome ? "Твой график уже открыт. Выбери знак сейчас или вернись к нему позже." : "Цвет и символ сохранятся для этого графика."}</p><form id="coin-form"><input type="hidden" name="name" value="${esc(journal.settings.name)}">${coinEditor()}<p class="form-error" role="alert"></p><div class="form-footer"><button type="button" class="secondary" id="coin-later">Позже</button><button class="primary" type="submit">Сохранить монетку</button></div></form>`,
+    localizeUI`<div class="modal-eyebrow">${welcome ? localizeUI("ГРАФИК ГОТОВ") : localizeUI("ЛИЧНЫЙ ЗНАК")}</div><h2>${welcome ? localizeUI("Настроим монетку?") : localizeUI("Монетка графика")}</h2><p class="modal-description">${welcome ? localizeUI("Твой график уже открыт. Выбери знак сейчас или вернись к нему позже.") : localizeUI("Цвет и символ сохранятся для этого графика.")}</p><form id="coin-form"><input type="hidden" name="name" value="${esc(journal.settings.name)}">${coinEditor()}<p class="form-error" role="alert"></p><div class="form-footer"><button type="button" class="secondary" id="coin-later">Позже</button><button class="primary" type="submit">Сохранить монетку</button></div></form>`,
   );
   d.classList.add("coin-modal");
   const form = d.querySelector("form"),
@@ -3186,7 +3194,7 @@ function coinForm(welcome = false) {
 }
 function newGraphForm() {
   const d = modal(
-    `<div class="modal-eyebrow">НОВАЯ ИСТОРИЯ</div><h2>Создать график</h2><p class="modal-description">Предыдущие графики останутся в меню.</p><form id="new-graph-form"><label>Название<input name="name" maxlength="80" value="LIFEUSDT" required></label><label>Начальное значение<input name="initial" type="number" min="-1000000000" max="1000000000" step="0.01" value="100" inputmode="decimal" required></label>${starterChoice()}<p class="form-error" role="alert"></p><button class="primary full-width" type="submit">Создать график</button></form>`,
+    localizeUI`<div class="modal-eyebrow">НОВАЯ ИСТОРИЯ</div><h2>Создать график</h2><p class="modal-description">Предыдущие графики останутся в меню.</p><form id="new-graph-form"><label>Название<input name="name" maxlength="80" value="LIFEUSDT" required></label><label>Начальное значение<input name="initial" type="number" min="-1000000000" max="1000000000" step="0.01" value="100" inputmode="decimal" required></label>${starterChoice()}<p class="form-error" role="alert"></p><button class="primary full-width" type="submit">Создать график</button></form>`,
   );
   const f = d.querySelector("form");
 
@@ -3236,11 +3244,11 @@ function resetGraph(testOnly) {
   );
   const days = testOnly ? [] : journal.days.filter((d) => !d.deletedAt);
   if (!targets.length && !days.length) {
-    toast("Нет записей для очистки");
+    toast(localizeUI("Нет записей для очистки"));
     return;
   }
   const d = modal(
-    `<div class="modal-eyebrow">${esc(journal.settings.name)}</div><h2>${testOnly ? "Убрать тестовые события?" : "Начать этот график заново?"}</h2><p class="modal-description">Будет убрано ${targets.length} событий и ${days.length} заметок. Название, начальное значение и другие графики сохранятся. Предыдущее состояние останется в резервной копии.</p><div class="form-footer"><button class="secondary" id="cancel-reset">Отмена</button><button class="danger" id="confirm-reset">${testOnly ? "Убрать тестовые" : "Очистить график"}</button></div>`,
+    localizeUI`<div class="modal-eyebrow">${esc(journal.settings.name)}</div><h2>${testOnly ? localizeUI("Убрать тестовые события?") : localizeUI("Начать этот график заново?")}</h2><p class="modal-description">Будет убрано ${targets.length} событий и ${days.length} заметок. Название, начальное значение и другие графики сохранятся. Предыдущее состояние останется в резервной копии.</p><div class="form-footer"><button class="secondary" id="cancel-reset">Отмена</button><button class="danger" id="confirm-reset">${testOnly ? localizeUI("Убрать тестовые") : localizeUI("Очистить график")}</button></div>`,
     { enterConfirm: "#confirm-reset" },
   );
   $("#cancel-reset").onclick = () => d.close();
@@ -3256,7 +3264,7 @@ function resetGraph(testOnly) {
       await commit(next);
       closeModal();
       render();
-      toast("График очищен");
+      toast(localizeUI("График очищен"));
     } catch (error) {
       toast(error.message);
       e.target.disabled = false;
@@ -3277,7 +3285,7 @@ async function randomEvent(e) {
       -1,
     );
     if (date < "1900-01-01")
-      throw new Error("Достигнуто начало допустимой истории");
+      throw new Error(localizeUI("Достигнуто начало допустимой истории"));
     let next = journal;
     const size = Math.max(
       1,
@@ -3292,7 +3300,7 @@ async function randomEvent(e) {
       const example =
         EVENT_EXAMPLES[Math.floor(Math.random() * EVENT_EXAMPLES.length)].text;
       next = upsertEvent(next, {
-        text: "Тест · " + example,
+        text: localizeUI("Тест · ") + example,
         date,
         time,
         unit: "points",
@@ -3333,7 +3341,7 @@ async function randomEvent(e) {
       intradayEnd = Math.min(intradayEnd, minuteAt(date) + intradayCount);
     }
     render();
-    toast("Тестовый день: " + shortDate(date) + " · 6 событий");
+    toast(localizeUI("Тестовый день: ") + shortDate(date) + localizeUI(" · 6 событий"));
   } catch (error) {
     toast(error.message);
     button.disabled = false;
@@ -3366,7 +3374,7 @@ async function recordQuickMove(direction) {
       const change = round((Math.abs(currentValue) * 0.2) / 100);
       if (!change)
         throw new Error(
-          "При таком значении шаг 0,2% меньше минимального шага графика 0,01.",
+          localizeUI("При таком значении шаг 0,2% меньше минимального шага графика 0,01."),
         );
       const previous = recentQuickMove(
         current.events,
@@ -3404,7 +3412,7 @@ async function recordQuickMove(direction) {
         },
       }, previous?.id);
       const event = next.events.find((item) => item.id === (previous?.id ?? next.events.at(-1)?.id));
-      if (!event) throw new Error("Не удалось обновить быстрое событие.");
+      if (!event) throw new Error(localizeUI("Не удалось обновить быстрое событие."));
       eventId = event.id;
       eventDeltaTo = event.delta;
       event.order =
@@ -3474,11 +3482,11 @@ function eventForm(id = null, date = localDate()) {
   let lastDate = date,
     lastTime = existing?.time ?? localTime();
   const d = modal(
-    `<div class="modal-eyebrow">МОМЕНТ, КОТОРЫЙ ИМЕЕТ ЗНАЧЕНИЕ</div><h2>${existing ? "Изменить событие" : "Что произошло?"}</h2><p class="modal-description">${esc(copy.phrase)}</p><form id="event-form"><label>Событие (необязательно)<textarea name="text" placeholder="Например, ${esc(copy.example.charAt(0).toLowerCase() + copy.example.slice(1))}" maxlength="4000" rows="2">${esc(existing?.text || "")}</textarea></label>
-    <details class="event-examples"><summary>Ещё идеи · 500 примеров</summary><label class="example-search-label">Найти пример<input id="example-search" type="search" placeholder="Например: друзья, зарплата, собака"></label><div class="example-categories">${["Все", ...EXAMPLE_CATEGORIES].map((c) => `<button type="button" data-example-category="${esc(c)}" aria-pressed="${c === "Все"}">${esc(c)}</button>`).join("")}</div><div class="example-results"></div><p class="micro">Выбери идею — перейдём сразу к изменению.</p></details>
+    localizeUI`<div class="modal-eyebrow">МОМЕНТ, КОТОРЫЙ ИМЕЕТ ЗНАЧЕНИЕ</div><h2>${existing ? localizeUI("Изменить событие") : localizeUI("Что произошло?")}</h2><p class="modal-description">${esc(copy.phrase)}</p><form id="event-form"><label>Событие (необязательно)<textarea name="text" placeholder="Например, ${esc(copy.example.charAt(0).toLowerCase() + copy.example.slice(1))}" maxlength="4000" rows="2">${esc(existing?.text || "")}</textarea></label>
+    <details class="event-examples"><summary>Ещё идеи · 500 примеров</summary><label class="example-search-label">Найти пример<input id="example-search" type="search" placeholder="Например: друзья, зарплата, собака"></label><div class="example-categories">${[localizeUI("Все"), ...EXAMPLE_CATEGORIES].map((c) => `<button type="button" data-example-category="${esc(c)}" aria-pressed="${c === localizeUI("Все")}">${esc(c)}</button>`).join("")}</div><div class="example-results"></div><p class="micro">Выбери идею — перейдём сразу к изменению.</p></details>
     <label>Изменение</label><div class="event-amount-input"><div class="sign-switch" role="group" aria-label="Направление события"><button type="button" data-delta-sign="1" aria-label="Плюс — рост">+</button><button type="button" data-delta-sign="-1" aria-label="Минус — спад">−</button></div><input name="delta" aria-label="Изменение" type="text" inputmode="decimal" autocomplete="off" value="${existing?.delta ?? 5}" required><input type="hidden" name="unit" value="points"><div class="unit-switch" role="group" aria-label="Единица изменения"><button type="button" data-unit="points" aria-pressed="true">Число</button><button type="button" data-unit="percent" aria-pressed="false">Проценты %</button></div></div><div class="impact-preview" id="impact-preview"></div>
     <label>Когда произошло</label><div class="moment-switch" role="group" aria-label="Время события"><button type="button" data-event-time="now">Сейчас · ${localTime()}</button><button type="button" data-event-time="custom">Другая дата и время</button></div><div class="moment-fields">${momentPickerMarkup()}${timePickerMarkup()}</div><input name="date" type="hidden" value="${date}"><input name="time" type="hidden" value="${lastTime}">
-    <p class="micro event-hint">${esc(copy.hint)}</p><p class="form-error" role="alert"></p><div class="form-footer"><button type="submit" class="primary full-width">${existing ? "Сохранить изменения" : "Добавить событие"} ${icon("arrow", 17)}</button></div></form>`,
+    <p class="micro event-hint">${esc(copy.hint)}</p><p class="form-error" role="alert"></p><div class="form-footer"><button type="submit" class="primary full-width">${existing ? localizeUI("Сохранить изменения") : localizeUI("Добавить событие")} ${icon("arrow", 17)}</button></div></form>`,
     { explicitClose: true },
   );
   d.classList.add("event-modal");
@@ -3506,13 +3514,13 @@ function eventForm(id = null, date = localDate()) {
         }
       })();
     if (!Number.isFinite(input)) {
-      $("#impact-preview").textContent = "Введи число для расчёта результата";
+      $("#impact-preview").textContent = localizeUI("Введи число для расчёта результата");
       return;
     }
     try {
       const tmp = upsertEvent(
         journal,
-        { date, time, text: "Предпросмотр", delta: 0 },
+        { date, time, text: localizeUI("Предпросмотр"), delta: 0 },
         id,
       );
       const candidate =
@@ -3529,10 +3537,10 @@ function eventForm(id = null, date = localDate()) {
           ? round((Math.abs(base) * input) / 100)
           : input;
       $("#impact-preview").innerHTML =
-        `<span>Результат записи</span><strong class="${direction(delta)}">${signed(delta)} <small>(${pct(percentage(delta, base))})</small></strong>`;
+        localizeUI`<span>Результат записи</span><strong class="${direction(delta)}">${signed(delta)} <small>(${pct(percentage(delta, base))})</small></strong>`;
     } catch (error) {
       $("#impact-preview").textContent = error.message.includes("0,01")
-        ? "Запись уводит значение ниже минимума 0,01. Уменьши спад."
+        ? localizeUI("Запись уводит значение ниже минимума 0,01. Уменьши спад.")
         : error.message;
     }
   };
@@ -3545,7 +3553,7 @@ function eventForm(id = null, date = localDate()) {
     form.querySelector(".time-picker").hidden = timeMode !== "custom";
     syncPicker();
     d.querySelector('[data-event-time="now"]').textContent =
-      "Сейчас · " + localTime();
+      localizeUI("Сейчас · ") + localTime();
     d.querySelectorAll("[data-event-date]").forEach((b) =>
       b.setAttribute("aria-pressed", String(b.dataset.eventDate === dateMode)),
     );
@@ -3594,7 +3602,7 @@ function eventForm(id = null, date = localDate()) {
       form.elements.delta.focus({ preventScroll: true });
     });
   };
-  let exampleCategory = "Все",
+  let exampleCategory = localizeUI("Все"),
     exampleOrder = EVENT_EXAMPLES;
   d.querySelector(".event-examples").ontoggle = (e) => {
     if (e.currentTarget.open) {
@@ -3612,7 +3620,7 @@ function eventForm(id = null, date = localDate()) {
       entries
         .map((e) => `<button type="button">${esc(e.text)}</button>`)
         .join("") ||
-      '<p class="micro">Попробуй другое слово или категорию.</p>';
+      localizeUI('<p class="micro">Попробуй другое слово или категорию.</p>');
     d.querySelectorAll(".example-results button").forEach(
       (b, i) => (b.onclick = () => useExample(entries[i].text)),
     );
@@ -3664,7 +3672,7 @@ function eventForm(id = null, date = localDate()) {
     button.disabled = true;
     try {
       const fields = {
-        text: form.elements.text.value.trim() || "Без описания",
+        text: form.elements.text.value.trim() || localizeUI("Без описания"),
         date: form.elements.date.value,
         time: form.elements.time.value,
         delta: readAmount(),
@@ -3683,8 +3691,8 @@ function eventForm(id = null, date = localDate()) {
         if (futureClicks < 3)
           throw new Error(
             futureClicks === 1
-              ? "Это будущее. Обычно записи добавляют за сегодня или прошлые дни. Если дата верна, нажми «Добавить» ещё два раза."
-              : "Дата всё ещё в будущем. Нажми ещё один раз, чтобы сохранить эту запись.",
+              ? localizeUI("Это будущее. Обычно записи добавляют за сегодня или прошлые дни. Если дата верна, нажми «Добавить» ещё два раза.")
+              : localizeUI("Дата всё ещё в будущем. Нажми ещё один раз, чтобы сохранить эту запись."),
           );
       }
       const next = upsertEvent(journal, fields, id);
@@ -3706,8 +3714,8 @@ function eventForm(id = null, date = localDate()) {
       render();
       toast(
         existing
-          ? "Событие обновлено. График пересчитан."
-          : "Ещё один момент в твоей истории",
+          ? localizeUI("Событие обновлено. График пересчитан.")
+          : localizeUI("Ещё один момент в твоей истории"),
       );
     } catch (error) {
       form.querySelector(".form-error").textContent = error.message;
@@ -3720,7 +3728,7 @@ function dayForm(date = localDate()) {
   const dayPrompt = nextDayPrompt();
   dayPromptByDate.set(date, dayPrompt);
   const d = modal(
-    `<div class="modal-eyebrow">${fullDate(date)}</div><h2>Дай этому дню имя</h2><p class="modal-description">${esc(dayPrompt)}</p><form id="day-form"><label>Название дня<input name="title" maxlength="120" placeholder="Например, ${esc(nextDayExample())}" value="${esc(day.title)}"></label><label>Описание<textarea name="note" maxlength="12000" rows="6" placeholder="Что хочется запомнить?">${esc(noteDrafts.get(journal.id + ":" + date) ?? day.note)}</textarea></label><p class="form-error" role="alert"></p><div class="form-footer"><button type="button" class="secondary" id="cancel-form">Отмена</button><button class="primary" type="submit">Сохранить день ${icon("check", 17)}</button></div></form>`,
+    localizeUI`<div class="modal-eyebrow">${fullDate(date)}</div><h2>Дай этому дню имя</h2><p class="modal-description">${esc(dayPrompt)}</p><form id="day-form"><label>Название дня<input name="title" maxlength="120" placeholder="Например, ${esc(nextDayExample())}" value="${esc(day.title)}"></label><label>Описание<textarea name="note" maxlength="12000" rows="6" placeholder="Что хочется запомнить?">${esc(noteDrafts.get(journal.id + ":" + date) ?? day.note)}</textarea></label><p class="form-error" role="alert"></p><div class="form-footer"><button type="button" class="secondary" id="cancel-form">Отмена</button><button class="primary" type="submit">Сохранить день ${icon("check", 17)}</button></div></form>`,
   );
   $("#cancel-form").onclick = () => d.close();
   $("#day-form").onsubmit = async (e) => {
@@ -3739,7 +3747,7 @@ function dayForm(date = localDate()) {
       noteDrafts.delete(journal.id + ":" + date);
       closeModal();
       render();
-      toast("День сохранён");
+      toast(localizeUI("День сохранён"));
     } catch (error) {
       form.querySelector(".form-error").textContent = error.message;
       button.disabled = false;
@@ -3749,7 +3757,7 @@ function dayForm(date = localDate()) {
 function deleteEvent(id) {
   const event = journal.events.find((e) => e.id === id);
   modal(
-    `<div class="modal-eyebrow">ИЗМЕНЕНИЕ ИСТОРИИ</div><h2>Удалить событие?</h2><p class="modal-description">«${esc(event.text)}»</p><p class="muted">Этот и все следующие дни будут пересчитаны. Предыдущее состояние останется в резервной копии.</p><div class="form-footer"><button class="secondary" id="keep-event">Оставить</button><button class="danger" id="confirm-delete">Удалить</button></div>`,
+    localizeUI`<div class="modal-eyebrow">ИЗМЕНЕНИЕ ИСТОРИИ</div><h2>Удалить событие?</h2><p class="modal-description">«${esc(event.text)}»</p><p class="muted">Этот и все следующие дни будут пересчитаны. Предыдущее состояние останется в резервной копии.</p><div class="form-footer"><button class="secondary" id="keep-event">Оставить</button><button class="danger" id="confirm-delete">Удалить</button></div>`,
     { enterConfirm: "#confirm-delete" },
   );
   $("#keep-event").onclick = closeModal;
@@ -3762,7 +3770,7 @@ function deleteEvent(id) {
       await commit(next);
       closeModal();
       render();
-      toast("Событие удалено");
+      toast(localizeUI("Событие удалено"));
     } catch (e) {
       toast(e.message);
       closeModal();
@@ -3772,7 +3780,7 @@ function deleteEvent(id) {
 function syncChoiceDialog(title, description, choices) {
   return new Promise((resolve) => {
     const dialog = modal(
-      `<div class="modal-eyebrow">СИНХРОНИЗАЦИЯ</div><h2>${esc(title)}</h2><p class="modal-description">${esc(description)}</p><div class="sync-choice-list">${choices.map((choice) => `<button type="button" class="${choice.primary ? "primary" : "secondary"}" data-sync-choice="${esc(choice.value)}">${esc(choice.label)}</button>`).join("")}</div>`,
+      localizeUI`<div class="modal-eyebrow">СИНХРОНИЗАЦИЯ</div><h2>${esc(title)}</h2><p class="modal-description">${esc(description)}</p><div class="sync-choice-list">${choices.map((choice) => `<button type="button" class="${choice.primary ? "primary" : "secondary"}" data-sync-choice="${esc(choice.value)}">${esc(choice.label)}</button>`).join("")}</div>`,
     );
     let settled = false;
     const finish = (value) => {
@@ -3790,7 +3798,7 @@ function syncChoiceDialog(title, description, choices) {
 
 async function replaceWithRemote(remote, credentials, snapshot) {
   await saveQueue;
-  if (demo) throw new Error("Сначала вернись к личному графику");
+  if (demo) throw new Error(localizeUI("Сначала вернись к личному графику"));
   assertSyncTarget(journal, snapshot);
   await commit(remote.journal, { replace: true });
   const saved = journal;
@@ -3802,7 +3810,7 @@ async function replaceWithRemote(remote, credentials, snapshot) {
   });
   closeModal();
   render();
-  return `Загружена облачная версия «${saved.settings.name}». Текущая локальная версия сохранена отдельно.`;
+  return localizeUI`Загружена облачная версия «${saved.settings.name}». Текущая локальная версия сохранена отдельно.`;
 }
 
 async function writeLocalToRemote(credentials, snapshot, baseRevision) {
@@ -3811,14 +3819,14 @@ async function writeLocalToRemote(credentials, snapshot, baseRevision) {
     serverRevision: result.revision,
     localRevision: snapshot.revision,
   });
-  return `«${snapshot.settings.name}» синхронизирован. Облачная версия ${result.revision}.`;
+  return localizeUI`«${snapshot.settings.name}» синхронизирован. Облачная версия ${result.revision}.`;
 }
 
 async function syncJournalNow() {
   await saveQueue;
-  if (!journal || demo) throw new Error("Сначала открой личный график");
+  if (!journal || demo) throw new Error(localizeUI("Сначала открой личный график"));
   const credentials = loadSyncCredentials();
-  if (!credentials) throw new Error("Сначала подключи файл сопряжения");
+  if (!credentials) throw new Error(localizeUI("Сначала подключи файл сопряжения"));
 
   const snapshot = structuredClone(journal);
   const graphs = await syncClient.listGraphs(credentials);
@@ -3826,50 +3834,50 @@ async function syncJournalNow() {
 
   if (matching) {
     const remote = await syncClient.readJournal(credentials, snapshot.id);
-    if (!remote) throw new Error("Облачный график изменился. Повтори синхронизацию.");
+    if (!remote) throw new Error(localizeUI("Облачный график изменился. Повтори синхронизацию."));
     if (remote.journal.id !== snapshot.id)
-      throw new Error("ID облачного дневника не совпадает с его содержимым");
+      throw new Error(localizeUI("ID облачного дневника не совпадает с его содержимым"));
 
     if (JSON.stringify(remote.journal) === JSON.stringify(snapshot)) {
       setSyncMarker(credentials.accountId, snapshot.id, {
         serverRevision: remote.revision,
         localRevision: snapshot.revision,
       });
-      return "Этот график уже совпадает с облачной копией.";
+      return localizeUI("Этот график уже совпадает с облачной копией.");
     }
 
     const marker = getSyncMarker(credentials.accountId, snapshot.id);
     const action = syncAction(snapshot, remote, marker);
-    if (action === "unchanged") return "Этот график уже синхронизирован.";
+    if (action === "unchanged") return localizeUI("Этот график уже синхронизирован.");
     if (action === "download")
       return replaceWithRemote(remote, credentials, snapshot);
     if (action === "upload")
       return writeLocalToRemote(credentials, snapshot, remote.revision);
 
     const choice = await syncChoiceDialog(
-      "На устройствах разные версии",
-      `Локальная версия «${snapshot.settings.name}» и облачная версия ${remote.revision} расходятся. Выбери, какую оставить.`,
+      localizeUI("На устройствах разные версии"),
+      localizeUI`Локальная версия «${snapshot.settings.name}» и облачная версия ${remote.revision} расходятся. Выбери, какую оставить.`,
       [
-        { value: "local", label: "Загрузить эту версию в облако", primary: true },
-        { value: "cloud", label: "Восстановить версию из облака" },
+        { value: "local", label: localizeUI("Загрузить эту версию в облако"), primary: true },
+        { value: "cloud", label: localizeUI("Восстановить версию из облака") },
       ],
     );
     if (choice === "local")
       return writeLocalToRemote(credentials, snapshot, remote.revision);
     if (choice === "cloud") return replaceWithRemote(remote, credentials, snapshot);
-    return "Синхронизация отменена.";
+    return localizeUI("Синхронизация отменена.");
   }
 
   if (!graphs.length) {
     const choice = await syncChoiceDialog(
-      "Загрузить дневник в облако?",
-      `На сервер будет отправлен зашифрованный график «${snapshot.settings.name}» с ${snapshot.events.filter((event) => !event.deletedAt).length} событиями. Локальная копия останется на устройстве.`,
+      localizeUI("Загрузить дневник в облако?"),
+      localizeUI`На сервер будет отправлен зашифрованный график «${snapshot.settings.name}» с ${snapshot.events.filter((event) => !event.deletedAt).length} событиями. Локальная копия останется на устройстве.`,
       [
-        { value: "upload", label: "Загрузить зашифрованную копию", primary: true },
-        { value: "cancel", label: "Пока не загружать" },
+        { value: "upload", label: localizeUI("Загрузить зашифрованную копию"), primary: true },
+        { value: "cancel", label: localizeUI("Пока не загружать") },
       ],
     );
-    if (choice !== "upload") return "Первая загрузка отменена.";
+    if (choice !== "upload") return localizeUI("Первая загрузка отменена.");
     return writeLocalToRemote(credentials, snapshot, 0);
   }
 
@@ -3880,16 +3888,16 @@ async function syncJournalNow() {
     }),
   )).filter(Boolean);
   if (!candidates.length)
-    throw new Error("Не удалось прочитать облачные графики. Проверь подключение.");
+    throw new Error(localizeUI("Не удалось прочитать облачные графики. Проверь подключение."));
   const choice = await syncChoiceDialog(
-    "Выбери график для сопряжения",
-    `На сервере есть графики, которых нет на этом устройстве. Можно загрузить один из них сюда — текущий график останется в локальной истории — или добавить текущий график в облако отдельно.${graphs.length > 8 ? " Показаны последние восемь." : ""}`,
+    localizeUI("Выбери график для сопряжения"),
+    localizeUI`На сервере есть графики, которых нет на этом устройстве. Можно загрузить один из них сюда — текущий график останется в локальной истории — или добавить текущий график в облако отдельно.${graphs.length > 8 ? localizeUI(" Показаны последние восемь.") : ""}`,
     [
       ...candidates.map((remote) => ({
         value: `cloud:${remote.graphId}`,
-        label: `Скачать «${remote.journal.settings.name}» · ${remote.journal.events.filter((event) => !event.deletedAt).length} событий`,
+        label: localizeUI`Скачать «${remote.journal.settings.name}» · ${remote.journal.events.filter((event) => !event.deletedAt).length} событий`,
       })),
-      { value: "upload", label: "Загрузить текущий отдельным графиком", primary: true },
+      { value: "upload", label: localizeUI("Загрузить текущий отдельным графиком"), primary: true },
     ],
   );
   if (choice === "upload") return writeLocalToRemote(credentials, snapshot, 0);
@@ -3897,7 +3905,7 @@ async function syncJournalNow() {
     const remote = candidates.find((item) => `cloud:${item.graphId}` === choice);
     if (remote) return replaceWithRemote(remote, credentials, snapshot);
   }
-  return "Синхронизация отменена.";
+  return localizeUI("Синхронизация отменена.");
 }
 
 function settingsForm(initialTab = "appearance") {
@@ -3915,7 +3923,7 @@ function settingsForm(initialTab = "appearance") {
   let customColors = {
     ...Object.fromEntries(COLOR_KEYS.map((k) => [k, initialTokens[k]])),
   };
-  const dialog = modal(`
+  const dialog = modal(localizeUI`
     <div class="modal-eyebrow">ТВОЁ ПРОСТРАНСТВО</div><h2>Настройки</h2>
     <div class="settings-tabs" role="tablist" aria-label="Раздел настроек">
       <button type="button" role="tab" aria-selected="true" data-settings-tab="appearance">Оформление</button>
@@ -3926,10 +3934,11 @@ function settingsForm(initialTab = "appearance") {
     </div>
     <form id="settings-form" novalidate>
       <section data-settings-panel="appearance" role="tabpanel" aria-label="Оформление">
+        <label>Язык<select name="language">${languageOptions()}</select></label>
         <div class="theme-presets">${THEME_PRESETS.map((p) => `<button type="button" class="theme-preset" data-preset="${p.id}" aria-pressed="false"><span class="preset-art" style="--swatch:${p.swatch};--sample-bg:${p.bg}"><i></i><i></i><i></i><i></i><i></i></span><span>${p.name}</span></button>`).join("")}<button type="button" class="theme-preset" data-preset="custom" aria-pressed="false"><span class="preset-art custom-art">＋</span><span>Своя тема</span></button></div>
         <div class="chart-color-mode"><label>Цвета графика и цифр<select name="chartColors"><option value="classic">Классические · зелёный рост, красный спад</option><option value="theme">В цвет выбранной темы</option><option value="custom">Свои цвета графика</option></select></label><button type="button" id="custom-from-theme" class="secondary">Своя тема на основе этой →</button></div><p class="micro">По умолчанию свечи роста и значение зелёные. «В цвет темы» меняет их вместе с темой. Цвет личной монетки выбирается отдельно.</p>
         <label class="theme-base">Основа<select name="theme"><option value="dark">Тёмная</option><option value="light">Светлая</option><option value="system">Как в системе</option></select></label>
-        <div id="custom-colors" class="custom-colors" hidden>${COLOR_KEYS.map((k, i) => `<label>${["Кнопки и акценты", "Рост", "Падение", "Значение графика"][i]}<span><input type="color" name="color-${k}" value="${customColors[k]}" aria-label="${["Цвет кнопок", "Цвет роста", "Цвет падения", "Цвет значения"][i]}"><output data-color-output="${k}">${customColors[k]}</output></span></label>`).join("")}</div>
+        <div id="custom-colors" class="custom-colors" hidden>${COLOR_KEYS.map((k, i) => `<label>${[localizeUI("Кнопки и акценты"), localizeUI("Рост"), localizeUI("Падение"), localizeUI("Значение графика")][i]}<span><input type="color" name="color-${k}" value="${customColors[k]}" aria-label="${[localizeUI("Цвет кнопок"), localizeUI("Цвет роста"), localizeUI("Цвет падения"), localizeUI("Цвет значения")][i]}"><output data-color-output="${k}">${customColors[k]}</output></span></label>`).join("")}</div>
         <div class="theme-preview" aria-label="Предпросмотр темы"><div class="preview-heading"><span>ТВОЙ ГРАФИК <small>ПРЕДПРОСМОТР</small></span><strong>1 025 </strong></div><div class="preview-body"><svg viewBox="0 0 300 90" aria-hidden="true"><path d="M0 25H300M0 60H300" stroke="var(--grid)"/>${[56, 48, 57, 36, 24, 35, 18, 9].map((y, i) => `<g stroke="var(--${i === 2 || i === 5 ? "down" : "up"})" fill="var(--${i === 2 || i === 5 ? "down" : "up"})"><path d="M${20 + i * 36} ${y - 8}v34"/><rect x="${17 + i * 36}" y="${y}" width="6" height="18"/></g>`).join("")}</svg><div><span class="positive">+25 (+2,5%)</span><span class="negative">−5 (−0,5%)</span><button type="button" class="primary" id="preview-event">＋ Событие</button></div></div></div>
         <p id="theme-contrast" class="micro" role="status"></p>
         <p class="preview-caption" role="status">Оформление сохраняется автоматически.</p>
@@ -3949,6 +3958,7 @@ function settingsForm(initialTab = "appearance") {
         <label class="checkbox-label"><input type="checkbox" name="eventAnimation" ${journal.settings.eventAnimation !== false ? "checked" : ""}> Анимация после записи</label><p class="micro">Короткое построение свечей до добавленного момента. Итог и время событий остаются точными.</p><label class="checkbox-label"><input type="checkbox" name="motion" ${journal.settings.reducedMotion ? "checked" : ""}> Уменьшить анимацию</label>
       </section>
       <section data-settings-panel="application" role="tabpanel" aria-label="Приложение" hidden>
+
         <h3>Запуск и обновления</h3>
         <label class="checkbox-label"><input type="checkbox" name="appAutoStart"> <span id="app-auto-start-label">Запускать при входе в систему</span></label>
         <div id="app-tray-setting" hidden><label class="checkbox-label"><input type="checkbox" name="appTray"> При автозапуске открывать в трее</label><p class="micro">Только запуск вместе с системой уходит в трей. Если открыть High. вручную, появится полное окно.</p></div>
@@ -3963,7 +3973,7 @@ function settingsForm(initialTab = "appearance") {
         <label class="checkbox-label"><input type="checkbox" name="experimentalRandom" ${draft.experimentalRandom ? "checked" : ""}> Показывать кнопку «Случайное»</label>
         <p class="micro">Кнопка добавляет на график тестовые события за несколько дней. Включай её, когда хочешь посмотреть пример случайного движения.</p>
       </section>
-      <p class="form-error" role="alert"></p><div class="settings-save" hidden><button type="button" class="secondary" id="cancel-settings">Отмена</button><button type="submit" class="primary">Сохранить настройки</button></div>
+      <p class="form-error" role="alert"></p><div class="settings-save"><button type="button" class="secondary" id="cancel-settings">Отмена</button><button type="submit" class="primary">Сохранить настройки</button></div>
     </form>
     <section data-settings-panel="data" role="tabpanel" aria-label="Мои данные" class="settings-data" hidden><h3>Твоя история принадлежит тебе</h3><p>Данные хранятся локально. Перед изменениями создаётся резервная копия; доступны 30 последних состояний.</p><div class="data-buttons"><button id="export" class="secondary" ${demo ? "disabled" : ""}>${icon("download", 16)} Экспорт</button><button id="import" class="secondary" ${demo ? "disabled" : ""}>${icon("upload", 16)} Импорт</button><button id="backups" class="icon-button" aria-label="Открыть резервные копии" title="Открыть резервные копии" ${demo ? "disabled" : ""}>${icon("folder", 18)}</button></div><p class="micro">JSON включает записи, заметки и оформление.<br>Формат подходит для переноса между устройствами; синхронизация выполняется вручную и только после выбора файла сопряжения.</p><p class="micro">Даты записей сохраняются при смене часового пояса.<br>Часовой пояс дневника: ${esc(journal.settings.timeZone)}.</p><button id="demo-from-settings" class="text-button">Посмотреть демонстрационный график ${icon("right", 13)}</button></section>`);
   dialog.classList.add("appearance-modal");
@@ -3971,7 +3981,7 @@ function settingsForm(initialTab = "appearance") {
   const dataPanel = dialog.querySelector('[data-settings-panel="data"]');
   dataPanel.insertAdjacentHTML(
     "beforeend",
-    `<section class="sync-panel" aria-label="Синхронизация между устройствами"><h3>Синхронизация между устройствами</h3><p>Выбери файл сопряжения на каждом устройстве. Дневник шифруется на устройстве перед отправкой; для первой загрузки потребуется подтверждение.</p><div class="sync-actions"><button type="button" class="secondary" id="sync-connect" ${demo ? "disabled" : ""}>Выбрать файл сопряжения</button><button type="button" class="primary" id="sync-now" ${demo ? "disabled" : ""}>Синхронизировать сейчас</button><input type="file" id="sync-credentials-file" accept=".json,application/json" hidden></div><p id="sync-status" role="status" aria-live="polite"></p></section>`,
+    localizeUI`<section class="sync-panel" aria-label="Синхронизация между устройствами"><h3>Синхронизация между устройствами</h3><p>Выбери файл сопряжения на каждом устройстве. Дневник шифруется на устройстве перед отправкой; для первой загрузки потребуется подтверждение.</p><div class="sync-actions"><button type="button" class="secondary" id="sync-connect" ${demo ? "disabled" : ""}>Выбрать файл сопряжения</button><button type="button" class="primary" id="sync-now" ${demo ? "disabled" : ""}>Синхронизировать сейчас</button><input type="file" id="sync-credentials-file" accept=".json,application/json" hidden></div><p id="sync-status" role="status" aria-live="polite"></p></section>`,
   );
   const syncConnect = dialog.querySelector("#sync-connect"),
     syncNow = dialog.querySelector("#sync-now"),
@@ -3981,8 +3991,8 @@ function settingsForm(initialTab = "appearance") {
     const credentials = loadSyncCredentials();
     syncNow.disabled = demo || !credentials;
     syncStatus.textContent = credentials
-      ? "Файл сопряжения сохранён на этом устройстве. Для второго устройства используй тот же файл."
-      : "Сначала выбери cloudflare/local-credentials.json. Дневник пока остаётся только на этом устройстве.";
+      ? localizeUI("Файл сопряжения сохранён на этом устройстве. Для второго устройства используй тот же файл.")
+      : localizeUI("Сначала выбери cloudflare/local-credentials.json. Дневник пока остаётся только на этом устройстве.");
   };
   paintSyncStatus();
   syncConnect.onclick = () => {
@@ -3994,33 +4004,33 @@ function settingsForm(initialTab = "appearance") {
     if (!file) return;
     try {
       if (file.size > 16 * 1024)
-        throw new Error("Файл сопряжения неожиданно большой");
+        throw new Error(localizeUI("Файл сопряжения неожиданно большой"));
       const credentials = parseSyncCredentials(await file.text());
       saveSyncCredentials(credentials);
       paintSyncStatus();
       try {
         const graphs = await syncClient.listGraphs(credentials);
-        syncStatus.textContent = `Файл принят. На сервере найдено графиков: ${graphs.length}. Нажми «Синхронизировать сейчас», когда будешь готов.`;
+        syncStatus.textContent = localizeUI`Файл принят. На сервере найдено графиков: ${graphs.length}. Нажми «Синхронизировать сейчас», когда будешь готов.`;
       } catch (error) {
-        syncStatus.textContent = `Файл сохранён, сервер пока недоступен: ${error.message}`;
+        syncStatus.textContent = localizeUI`Файл сохранён, сервер пока недоступен: ${error.message}`;
       }
-      toast("Файл сопряжения сохранён на этом устройстве");
+      toast(localizeUI("Файл сопряжения сохранён на этом устройстве"));
     } catch (error) {
-      syncStatus.textContent = "Не удалось подключить файл: " + error.message;
+      syncStatus.textContent = localizeUI("Не удалось подключить файл: ") + error.message;
       toast(syncStatus.textContent);
     }
   };
   syncNow.onclick = async () => {
     syncNow.disabled = true;
-    syncStatus.textContent = "Проверяю облачную копию…";
+    syncStatus.textContent = localizeUI("Проверяю облачную копию…");
     try {
       const message = await syncJournalNow();
       if (syncStatus.isConnected) syncStatus.textContent = message;
       toast(message);
     } catch (error) {
       if (syncStatus.isConnected)
-        syncStatus.textContent = "Не удалось синхронизировать: " + error.message;
-      toast("Не удалось синхронизировать: " + error.message);
+        syncStatus.textContent = localizeUI("Не удалось синхронизировать: ") + error.message;
+      toast(localizeUI("Не удалось синхронизировать: ") + error.message);
     } finally {
       if (syncNow.isConnected) syncNow.disabled = demo || !loadSyncCredentials();
     }
@@ -4047,8 +4057,8 @@ function settingsForm(initialTab = "appearance") {
     const mobile = prefs.platform === "mobile";
     dialog.querySelector("#app-auto-start-label").textContent =
       prefs.platform === "win32"
-        ? "Запускать вместе с Windows"
-        : "Запускать при входе в систему";
+        ? localizeUI("Запускать вместе с Windows")
+        : localizeUI("Запускать при входе в систему");
     for (const name of ["appAutoStart", "appAutoUpdates"])
       (form.elements[name].closest("label")).hidden = mobile || (name === "appAutoUpdates" && prefs.portable);
     traySetting.hidden = mobile || !prefs.autoStart;
@@ -4057,28 +4067,28 @@ function settingsForm(initialTab = "appearance") {
     dialog.querySelector("#app-shortcut-setting").hidden = !shortcutSupported;
     shortcutButton.disabled = !shortcutSupported || !!prefs.desktopShortcutMatches;
     shortcutButton.textContent = prefs.desktopShortcutMatches
-      ? "Ярлык на рабочем столе уже создан"
+      ? localizeUI("Ярлык на рабочем столе уже создан")
       : prefs.desktopShortcutExists
-        ? "Обновить существующий ярлык"
-        : "Создать ярлык на рабочем столе";
+        ? localizeUI("Обновить существующий ярлык")
+        : localizeUI("Создать ярлык на рабочем столе");
     dialog.querySelector("#desktop-shortcut-status").textContent =
       prefs.desktopShortcutMatches
         ? ""
         : prefs.desktopShortcutExists
-          ? "Ярлык обновится на месте и откроет эту установку."
-          : "Если ярлык уже есть, второй не создаётся.";
+          ? localizeUI("Ярлык обновится на месте и откроет эту установку.")
+          : localizeUI("Если ярлык уже есть, второй не создаётся.");
     dialog.querySelector("#save-application-settings").disabled = false;
     dialog.querySelector("#save-application-settings").hidden = mobile;
     appSettingsStatus.textContent = mobile
-      ? "На телефоне запуск и обновления управляются системой и магазином приложений."
+      ? localizeUI("На телефоне запуск и обновления управляются системой и магазином приложений.")
       : prefs.portable
-        ? "Версия без установки. Если переместишь EXE, открой его один раз — включённый автозапуск обновит путь. Дневник остаётся в AppData. Обновление пока выполняется заменой EXE."
-        : "Настройки запуска сохранены на этом устройстве.";
+        ? localizeUI("Версия без установки. Если переместишь EXE, открой его один раз — включённый автозапуск обновит путь. Дневник остаётся в AppData. Обновление пока выполняется заменой EXE.")
+        : localizeUI("Настройки запуска сохранены на этом устройстве.");
   };
   void api.preferences()
     .then(paintApplicationPreferences)
     .catch((error) => {
-      appSettingsStatus.textContent = "Не удалось прочитать настройки: " + error.message;
+      appSettingsStatus.textContent = localizeUI("Не удалось прочитать настройки: ") + error.message;
     });
   shortcutButton.onclick = async () => {
     if (!applicationPreferences || shortcutButton.disabled) return;
@@ -4091,10 +4101,10 @@ function settingsForm(initialTab = "appearance") {
         shortcut: true,
       });
       paintApplicationPreferences(await api.preferences());
-      toast("Ярлык создан на рабочем столе");
+      toast(localizeUI("Ярлык создан на рабочем столе"));
     } catch (error) {
       shortcutButton.disabled = false;
-      appSettingsStatus.textContent = "Не удалось создать ярлык: " + error.message;
+      appSettingsStatus.textContent = localizeUI("Не удалось создать ярлык: ") + error.message;
     }
   };
   form.elements.theme.value = draft.theme;
@@ -4131,7 +4141,7 @@ function settingsForm(initialTab = "appearance") {
       (k) => contrastRatio(tokens[k], tokens.surface) < 3,
     );
     $("#theme-contrast").textContent = poor.length
-      ? "Некоторые цвета сливаются с фоном — попробуй сделать их светлее или темнее."
+      ? localizeUI("Некоторые цвета сливаются с фоном — попробуй сделать их светлее или темнее.")
       : "";
     if (save) {
       const sequence = ++appearanceSequence;
@@ -4140,7 +4150,7 @@ function settingsForm(initialTab = "appearance") {
         appearance: structuredClone(draft.appearance ?? { palette }),
       };
       const caption = dialog.querySelector(".preview-caption");
-      caption.textContent = "Сохраняю оформление…";
+      caption.textContent = localizeUI("Сохраняю оформление…");
       commit((next) => {
         Object.assign(next.settings, chosen);
         return next;
@@ -4148,14 +4158,14 @@ function settingsForm(initialTab = "appearance") {
         .then(() => {
           if (sequence === appearanceSequence)
             caption.textContent = demo
-              ? "Тема применена в демо"
-              : "Оформление сохранено автоматически";
+              ? localizeUI("Тема применена в демо")
+              : localizeUI("Оформление сохранено автоматически");
         })
         .catch((error) => {
           if (sequence === appearanceSequence) {
             Object.assign(draft, structuredClone(journal.settings));
             theme();
-            caption.textContent = "Не удалось сохранить: " + error.message;
+            caption.textContent = localizeUI("Не удалось сохранить: ") + error.message;
             toast(caption.textContent);
           }
         });
@@ -4176,7 +4186,7 @@ function settingsForm(initialTab = "appearance") {
         );
       form.hidden = button.dataset.settingsTab === "data";
       dialog.querySelector(".settings-save").hidden =
-        !["general", "experimental"].includes(button.dataset.settingsTab);
+        !["appearance", "general", "experimental"].includes(button.dataset.settingsTab);
     };
   });
   dialog.querySelectorAll("[data-preset]").forEach((button) => {
@@ -4262,7 +4272,7 @@ function settingsForm(initialTab = "appearance") {
     };
   });
   $("#preview-event").onclick = () =>
-    toast("Это пример кнопки в выбранной теме");
+    toast(localizeUI("Это пример кнопки в выбранной теме"));
   $("#cancel-settings").onclick = closeModal;
   dialog.addEventListener("close", async () => {
     await saveQueue;
@@ -4288,9 +4298,9 @@ function settingsForm(initialTab = "appearance") {
           shortcut: false,
         });
         paintApplicationPreferences(await api.preferences());
-        toast("Настройки приложения сохранены");
+        toast(localizeUI("Настройки приложения сохранены"));
       } catch (error) {
-        appSettingsStatus.textContent = "Не удалось сохранить: " + error.message;
+        appSettingsStatus.textContent = localizeUI("Не удалось сохранить: ") + error.message;
         button.disabled = false;
       }
       return;
@@ -4300,7 +4310,7 @@ function settingsForm(initialTab = "appearance") {
     try {
       const next = structuredClone(journal);
       if (!form.elements.initial.value.trim())
-        throw new Error("Укажи начальное значение");
+        throw new Error(localizeUI("Укажи начальное значение"));
       Object.assign(next.settings, draft, {
         name: form.elements.name.value.trim(),
         initial: Number(form.elements.initial.value),
@@ -4319,7 +4329,12 @@ function settingsForm(initialTab = "appearance") {
       previewSettings = null;
       closeModal();
       render();
-      toast("Настройки сохранены");
+      if (form.elements.language.value !== language) {
+        saveLanguage(form.elements.language.value);
+        location.reload();
+        return;
+      }
+      toast(localizeUI("Настройки сохранены"));
     } catch (error) {
       form.querySelector(".form-error").textContent = error.message;
       button.disabled = false;
@@ -4327,9 +4342,9 @@ function settingsForm(initialTab = "appearance") {
   };
   $("#export").onclick = async () => {
     try {
-      if (await api.export()) toast("Дневник экспортирован");
+      if (await api.export()) toast(localizeUI("Дневник экспортирован"));
     } catch (e) {
-      toast("Не удалось экспортировать: " + e.message);
+      toast(localizeUI("Не удалось экспортировать: ") + e.message);
     }
   };
   $("#import").onclick = importFile;
@@ -4357,7 +4372,7 @@ async function importFile() {
     if (!pendingImport) return;
     const c = calculate(pendingImport);
     modal(
-      `<div class="modal-eyebrow">ФАЙЛ ПРОВЕРЕН</div><h2>Восстановить дневник?</h2><p class="modal-description"><strong>${esc(pendingImport.settings.name)}</strong><br>${c.length} дней · ${pendingImport.events.filter((e) => !e.deletedAt).length} событий</p><p class="muted">Этот дневник заменит текущий. Его предыдущее состояние будет сохранено в резервной копии.</p><div class="form-footer"><button id="cancel-import" class="secondary">Отмена</button><button id="confirm-import" class="primary">Восстановить</button></div>`,
+      localizeUI`<div class="modal-eyebrow">ФАЙЛ ПРОВЕРЕН</div><h2>Восстановить дневник?</h2><p class="modal-description"><strong>${esc(pendingImport.settings.name)}</strong><br>${c.length} дней · ${pendingImport.events.filter((e) => !e.deletedAt).length} событий</p><p class="muted">Этот дневник заменит текущий. Его предыдущее состояние будет сохранено в резервной копии.</p><div class="form-footer"><button id="cancel-import" class="secondary">Отмена</button><button id="confirm-import" class="primary">Восстановить</button></div>`,
       { enterConfirm: "#confirm-import" },
     );
     $("#cancel-import").onclick = () => {
@@ -4373,14 +4388,14 @@ async function importFile() {
         end = localDate();
         selected = localDate();
         render();
-        toast("Дневник восстановлен");
+        toast(localizeUI("Дневник восстановлен"));
       } catch (error) {
         toast(error.message);
         closeModal();
       }
     };
   } catch (e) {
-    toast("Импорт отменён: " + e.message);
+    toast(localizeUI("Импорт отменён: ") + e.message);
   }
 }
 async function startDemo() {
@@ -4411,7 +4426,7 @@ async function startDemo() {
 function onboarding() {
   theme();
   $("#app").innerHTML =
-    `<div class="onboarding"><div class="onboarding-story"><a class="brand" href="#"><img src="../assets/icon.svg" alt=""><span>High<span class="brand-dot">.</span></span></a><div class="story-content"><span class="eyebrow">НЕ ИДЕАЛЬНАЯ ЛИНИЯ. ТВОЯ ИСТОРИЯ.</span><h1>Жизнь идёт<br>своим <em>ритмом.</em></h1><p>У неё есть взлёты, паузы и откаты.<br>Замечай их. Записывай важное.<br>И смотри на свой путь целиком.</p><svg class="welcome-chart" viewBox="0 0 540 210" fill="none" aria-hidden="true"><path d="M0 170H540M0 110H540M0 50H540" stroke="currentColor" opacity=".08"/>${[
+    localizeUI`<div class="onboarding"><div class="onboarding-story"><a class="brand" href="#"><img src="../assets/icon.svg" alt=""><span>High<span class="brand-dot">.</span></span></a><div class="story-content"><span class="eyebrow">НЕ ИДЕАЛЬНАЯ ЛИНИЯ. ТВОЯ ИСТОРИЯ.</span><h1>Жизнь идёт<br>своим <em>ритмом.</em></h1><p>У неё есть взлёты, паузы и откаты.<br>Замечай их. Записывай важное.<br>И смотри на свой путь целиком.</p><svg class="welcome-chart" viewBox="0 0 540 210" fill="none" aria-hidden="true"><path d="M0 170H540M0 110H540M0 50H540" stroke="currentColor" opacity=".08"/>${[
       145, 130, 139, 118, 96, 108, 82, 66, 77, 49, 38, 20,
     ]
       .map((y, i) => {
@@ -4420,7 +4435,13 @@ function onboarding() {
       })
       .join(
         "",
-      )}</svg><p class="welcome-quote">Одна красная свеча<br>не отменяет весь твой рост.</p></div><span class="welcome-foot">ЛИЧНОЕ ПРОСТРАНСТВО ДЛЯ ТВОЕГО ПУТИ</span></div><div class="onboarding-form"><div class="onboarding-form-inner"><span class="step-label">НАЧАЛО ИСТОРИИ / 01</span><h2>${blocked ? "Вернём твою историю" : "С какой точки начнём?"}</h2><p class="modal-description">Ты сам решаешь, какой вес имеют события.<br>Здесь нет чужих оценок и правильных цифр.</p>${blocked ? '<p class="form-error">Основной файл повреждён. Импортируй резервную копию, чтобы продолжить.</p>' : `<form id="start-form"><label>Название твоего графика<input name="name" value="${esc(startDraft.name)}" maxlength="80" required></label><label>Начальное значение<input name="initial" type="number" value="${esc(startDraft.initial)}" min="-1000000000" max="1000000000" step="0.01" required></label><p class="micro">Это точка отсчёта, а не оценка тебя.</p>${starterChoice()}<label>Оформление</label><div class="start-themes">${THEME_PRESETS.map((t) => `<label><input type="radio" name="preset" value="${t.id}" ${t.palette === startDraft.appearance.palette && t.theme === startDraft.theme ? "checked" : ""}><span data-preset="${t.id}" style="--swatch:${t.swatch}">${t.name}</span></label>`).join("")}</div><p class="micro">Свою тему и цвета свечей можно настроить после создания.</p><p class="form-error" role="alert"></p><button type="submit" class="primary full-width">Начать свой путь ${icon("arrow", 18)}</button></form>`}<button class="demo-link" id="start-demo">Сначала посмотреть, как это выглядит ${icon("right", 14)}</button><button class="text-button import-start" id="start-import">${icon("upload", 14)} У меня уже есть дневник</button><p class="privacy-note">${icon("lock", 14)} Без регистрации. Только для тебя. Работает без интернета. Сеть нужна только для проверки обновлений и синхронизации по твоему запросу.</p></div></div></div>`;
+      )}</svg><p class="welcome-quote">Одна красная свеча<br>не отменяет весь твой рост.</p></div><span class="welcome-foot">ЛИЧНОЕ ПРОСТРАНСТВО ДЛЯ ТВОЕГО ПУТИ</span></div><div class="onboarding-form"><div class="onboarding-form-inner"><span class="step-label">НАЧАЛО ИСТОРИИ / 01</span><h2>${blocked ? localizeUI("Вернём твою историю") : localizeUI("С какой точки начнём?")}</h2><p class="modal-description">Ты сам решаешь, какой вес имеют события.<br>Здесь нет чужих оценок и правильных цифр.</p>${blocked ? localizeUI('<p class="form-error">Основной файл повреждён. Импортируй резервную копию, чтобы продолжить.</p>') : localizeUI`<form id="start-form"><label>Название твоего графика<input name="name" value="${esc(startDraft.name)}" maxlength="80" required></label><label>Начальное значение<input name="initial" type="number" value="${esc(startDraft.initial)}" min="-1000000000" max="1000000000" step="0.01" required></label><p class="micro">Это точка отсчёта, а не оценка тебя.</p>${starterChoice()}<label>Оформление</label><div class="start-themes">${THEME_PRESETS.map((t) => `<label><input type="radio" name="preset" value="${t.id}" ${t.palette === startDraft.appearance.palette && t.theme === startDraft.theme ? "checked" : ""}><span data-preset="${t.id}" style="--swatch:${t.swatch}">${t.name}</span></label>`).join("")}</div><p class="micro">Свою тему и цвета свечей можно настроить после создания.</p><p class="form-error" role="alert"></p><button type="submit" class="primary full-width">Начать свой путь ${icon("arrow", 18)}</button></form>`}<button class="demo-link" id="start-demo">Сначала посмотреть, как это выглядит ${icon("right", 14)}</button><button class="text-button import-start" id="start-import">${icon("upload", 14)} У меня уже есть дневник</button><p class="privacy-note">${icon("lock", 14)} Без регистрации. Только для тебя. Работает без интернета. Сеть нужна только для проверки обновлений и синхронизации по твоему запросу.</p></div></div></div>`;
+  const languageSelect = document.createElement('select');
+  languageSelect.className = 'language-select';
+  languageSelect.setAttribute('aria-label', 'Language / Язык');
+  languageSelect.innerHTML = languageOptions();
+  document.querySelector('.onboarding .brand').after(languageSelect);
+  languageSelect.onchange = () => { saveLanguage(languageSelect.value); location.reload(); };
   const startForm = $("#start-form");
 
   const rememberStart = (event) => {
@@ -4446,7 +4467,7 @@ function onboarding() {
   $("#start-import").onclick = importFile;
   const archiveButton = document.createElement("button");
   archiveButton.className = "text-button import-start";
-  archiveButton.textContent = "Восстановить удалённый график";
+  archiveButton.textContent = localizeUI("Восстановить удалённый график");
   archiveButton.onclick = trashForm;
   $("#start-import").after(archiveButton);
   $("#start-form")?.addEventListener("submit", async (e) => {
@@ -4482,7 +4503,7 @@ document.addEventListener("keydown", (e) => {
   if (
     (e.ctrlKey || e.metaKey) &&
     !e.shiftKey &&
-    ["z", "я"].includes(e.key.toLowerCase()) &&
+    ["z", localizeUI("я")].includes(e.key.toLowerCase()) &&
     $("#chart") &&
     !$("dialog") &&
     !e.target.closest("input,textarea,[contenteditable=true]")
@@ -4532,7 +4553,7 @@ $("#minimize").onclick = () => api?.minimize();
 $("#maximize").onclick = () => api?.maximize();
 $("#close").onclick = () => {
   if (busy) {
-    toast("Завершаю сохранение…");
+    toast(localizeUI("Завершаю сохранение…"));
     return;
   }
   api?.close();
@@ -4540,12 +4561,12 @@ $("#close").onclick = () => {
 window.addEventListener("beforeunload", (e) => {
   if (busy) {
     e.preventDefault();
-    e.returnValue = "Идёт сохранение";
+    e.returnValue = localizeUI("Идёт сохранение");
   }
 });
 try {
   if (!api)
-    throw new Error("Запустите приложение через High.exe или npm start.");
+    throw new Error(localizeUI("Запустите приложение через High.exe или npm start."));
   const result = await api.load();
   journal = personal = result.journal;
   blocked = !!result.blocked;
@@ -4560,7 +4581,7 @@ try {
   if (!(await api.preferences()).initialized) applicationForm(true);
 } catch (e) {
   $("#app").innerHTML =
-    `<div class="fatal"><h1>Не удалось открыть дневник</h1><p>${esc(e.message)}</p></div>`;
+    localizeUI`<div class="fatal"><h1>Не удалось открыть дневник</h1><p>${esc(e.message)}</p></div>`;
 }
 
 let clockSeen = nowMinute();

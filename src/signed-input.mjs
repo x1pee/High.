@@ -1,10 +1,11 @@
+import { localizeUI } from "./i18n.mjs";
 export function parseSignedInput(text, sign = 1) {
   const raw = text.trim().replaceAll("−", "-").replace(",", ".");
   if (!/^[+-]?(?:\d+(?:\.\d{0,2})?|\.\d{1,2})$/.test(raw))
-    throw new Error("Введи число: не более двух знаков после запятой.");
+    throw new Error(localizeUI("Введи число: не более двух знаков после запятой."));
   const magnitude = Math.abs(Number(raw));
   if (!Number.isFinite(magnitude) || magnitude > 10000000)
-    throw new Error("Максимальный вес события — 10 000 000.");
+    throw new Error(localizeUI("Максимальный вес события — 10 000 000."));
   const nextSign =
     magnitude === 0
       ? 1

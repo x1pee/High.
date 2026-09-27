@@ -1,16 +1,17 @@
+import { localizeUI } from "./i18n.mjs";
 import { calendar, percentage, round, shiftDate } from "./domain.mjs";
 
 export const TIMEFRAMES = [
-  [1, "1м", "1 минута"],
-  [5, "5м", "5 минут"],
-  [15, "15м", "15 минут"],
-  [60, "1ч", "1 час"],
-  [240, "4ч", "4 часа"],
-  [1440, "1д", "1 день"],
-  [10080, "1н", "1 неделя"],
-  [43200, "1мес", "1 месяц"],
-  [129600, "3мес", "3 месяца"],
-  [525600, "1г", "1 год"],
+  [1, localizeUI("1м"), localizeUI("1 минута")],
+  [5, localizeUI("5м"), localizeUI("5 минут")],
+  [15, localizeUI("15м"), localizeUI("15 минут")],
+  [60, localizeUI("1ч"), localizeUI("1 час")],
+  [240, localizeUI("4ч"), localizeUI("4 часа")],
+  [1440, localizeUI("1д"), localizeUI("1 день")],
+  [10080, localizeUI("1н"), localizeUI("1 неделя")],
+  [43200, localizeUI("1мес"), localizeUI("1 месяц")],
+  [129600, localizeUI("3мес"), localizeUI("3 месяца")],
+  [525600, localizeUI("1г"), localizeUI("1 год")],
 ];
 export function periodStart(date, interval) {
   const d = new Date(date + "T00:00:00Z");

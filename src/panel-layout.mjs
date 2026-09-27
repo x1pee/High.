@@ -1,3 +1,4 @@
+import { localizeUI } from "./i18n.mjs";
 const KEY = "vyshe-panel-layout";
 let sideWidth = 310;
 let height = 220,
@@ -44,10 +45,10 @@ export function bindPanelLayout() {
     separator.setAttribute("aria-valuenow", Math.round(actual));
     separator.setAttribute("aria-valuemin", "130");
     separator.setAttribute("aria-valuemax", Math.round(maximum()));
-    toggle.textContent = above ? "↓ Снизу" : "↑ Сверху";
+    toggle.textContent = above ? localizeUI("↓ Снизу") : localizeUI("↑ Сверху");
     toggle.setAttribute(
       "aria-label",
-      above ? "Переместить ленту под график" : "Переместить ленту над графиком",
+      above ? localizeUI("Переместить ленту под график") : localizeUI("Переместить ленту над графиком"),
     );
   };
   apply();

@@ -1,44 +1,45 @@
+import { localizeUI } from "./i18n.mjs";
 export const COIN_COLORS = {
-  gold: ["Золото", "#f5b840"],
-  mint: ["Мята", "#37d6aa"],
-  blue: ["Синий", "#77b9ff"],
-  violet: ["Фиолетовый", "#bd98ff"],
-  coral: ["Коралл", "#ff8c92"],
-  red: ["Красный", "#ff465d"],
-  orange: ["Апельсин", "#ff974f"],
-  lime: ["Лайм", "#b4e55a"],
-  cyan: ["Бирюза", "#50dce6"],
-  pink: ["Розовый", "#f582c3"],
-  white: ["Белый", "#f0f3fa"],
-  silver: ["Серебро", "#c5d0de"],
-  teal: ["Петроль", "#249c94"],
-  indigo: ["Индиго", "#7178ee"],
-  copper: ["Медь", "#d39465"],
+  gold: [localizeUI("Золото"), "#f5b840"],
+  mint: [localizeUI("Мята"), "#37d6aa"],
+  blue: [localizeUI("Синий"), "#77b9ff"],
+  violet: [localizeUI("Фиолетовый"), "#bd98ff"],
+  coral: [localizeUI("Коралл"), "#ff8c92"],
+  red: [localizeUI("Красный"), "#ff465d"],
+  orange: [localizeUI("Апельсин"), "#ff974f"],
+  lime: [localizeUI("Лайм"), "#b4e55a"],
+  cyan: [localizeUI("Бирюза"), "#50dce6"],
+  pink: [localizeUI("Розовый"), "#f582c3"],
+  white: [localizeUI("Белый"), "#f0f3fa"],
+  silver: [localizeUI("Серебро"), "#c5d0de"],
+  teal: [localizeUI("Петроль"), "#249c94"],
+  indigo: [localizeUI("Индиго"), "#7178ee"],
+  copper: [localizeUI("Медь"), "#d39465"],
 };
 export const COIN_SYMBOLS = {
-  initials: "Буквы",
-  prism: "Призма",
-  link: "Связь",
-  strata: "Слои",
-  vector: "Вектор",
-  nexus: "Узел",
-  aperture: "Контур",
-  diamond: "Кристалл",
-  star: "Звезда",
-  mountain: "Горы",
-  orbit: "Орбита",
-  bolt: "Молния",
-  flame: "Пламя",
-  crown: "Корона",
-  compass: "Компас",
-  wave: "Волна",
-  sprout: "Росток",
-  hex: "Гексагон",
+  initials: localizeUI("Буквы"),
+  prism: localizeUI("Призма"),
+  link: localizeUI("Связь"),
+  strata: localizeUI("Слои"),
+  vector: localizeUI("Вектор"),
+  nexus: localizeUI("Узел"),
+  aperture: localizeUI("Контур"),
+  diamond: localizeUI("Кристалл"),
+  star: localizeUI("Звезда"),
+  mountain: localizeUI("Горы"),
+  orbit: localizeUI("Орбита"),
+  bolt: localizeUI("Молния"),
+  flame: localizeUI("Пламя"),
+  crown: localizeUI("Корона"),
+  compass: localizeUI("Компас"),
+  wave: localizeUI("Волна"),
+  sprout: localizeUI("Росток"),
+  hex: localizeUI("Гексагон"),
 };
 export const COIN_RIMS = {
-  classic: "Двойной ободок",
-  solid: "Заливка",
-  segments: "Сегменты",
+  classic: localizeUI("Двойной ободок"),
+  solid: localizeUI("Заливка"),
+  segments: localizeUI("Сегменты"),
 };
 export function validateCoin(coin) {
   if (coin === undefined) return;
@@ -54,7 +55,7 @@ export function validateCoin(coin) {
     (coin.label !== undefined &&
       (typeof coin.label !== "string" || Array.from(coin.label).length > 5))
   )
-    throw new Error("Некорректное оформление монеты");
+    throw new Error(localizeUI("Некорректное оформление монеты"));
 }
 const escape = (s) =>
   s.replace(
@@ -155,7 +156,7 @@ export function coinSvg(
   return `<svg viewBox="0 0 64 64" aria-hidden="true" class="coin-svg"><circle cx="32" cy="32" r="30" fill="${solid ? tint : "#11151b"}" stroke="${tint}" stroke-width="2"/><circle cx="32" cy="32" r="25" fill="none" stroke="${color}" opacity="${solid ? 0.6 : 0.3}" stroke-dasharray="${coin.rim === "segments" ? "5 4" : "none"}"/><g fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round">${art}</g></svg>`;
 }
 export function coinEditor() {
-  return `<fieldset class="coin-editor"><legend>Монетка графика</legend><div class="coin-customizer"><div class="coin-preview"></div><div><div class="coin-options" role="group" aria-label="Цвет монетки">${Object.entries(
+  return localizeUI`<fieldset class="coin-editor"><legend>Монетка графика</legend><div class="coin-customizer"><div class="coin-preview"></div><div><div class="coin-options" role="group" aria-label="Цвет монетки">${Object.entries(
     COIN_COLORS,
   )
     .map(
