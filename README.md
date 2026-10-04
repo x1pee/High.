@@ -13,7 +13,7 @@ An offline journal that turns everyday moments into a personal chart. Add an ent
 
 Download **High_2.0.0_x64.exe** from [Releases](https://github.com/x1pee/High./releases/tag/v2.0.0) and open it. No installer. Windows requires WebView2 Runtime.
 
-Your journal lives in `%APPDATA%\Vyshe`. To update, close High. and replace the EXE; your entries stay on your device. This repository is private, so downloads require GitHub access. In-app updates from private Releases are not available yet.
+Your journal lives in `%APPDATA%\Vyshe`. High. checks GitHub for updates and highlights the update button when a new version is available. Download and restart after confirmation; your entries stay on your device. You can also replace the EXE manually after closing High.
 
 **2.0 is the Windows release.** Linux, macOS, and Android builds are being tested. Sync transfers individual graphs manually through a pairing file; keep that file private. [Sync guide](cloudflare/README.md) · [Platform status](PLATFORMS-AND-SYNC.md).
 

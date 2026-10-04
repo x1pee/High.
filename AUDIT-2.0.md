@@ -1,6 +1,6 @@
 # High. 2.0.0 — release checks
 
-2026-10-04. Windows release; source and downloads remain private.
+2026-10-04. Windows release. The user requested public source and downloads after the initial private release preparation.
 
 - JavaScript: 126 tests passed, including journal recovery, quick moves, sync conflicts, and update lifecycle.
 - Rust: 2 tests passed for scoped profile paths and complete document replacement.
@@ -17,7 +17,11 @@
 
 Manual encrypted sync transfers individual graphs through a pairing file. It is not background library sync; keys currently remain in local WebView storage. Physical Android sync and mobile installation have not been validated.
 
-The GitHub repository is private. Anonymous in-app update requests still cannot download Releases; use an authorized GitHub download and replace the EXE manually. Signed artifacts do not by themselves establish that the private updater works.
+The GitHub repository is now public. Real WebView2 test of the official `v1.9.23` EXE → `v2.0.0` passed with an isolated control journal: automatic availability detection, green button and glow, confirmed download, signature validation, EXE replacement, relaunch, exact journal preservation, and removal of the highlight on the latest version. A separate headless UI check confirmed the highlight survives switching to the diary; its offer was mocked.
+
+Published EXE: 6,133,248 bytes; SHA256 `3038082cae8f858f712a5e99e9198a83a70393a9ac14fc97892a387001097706`. Downloaded from GitHub, verified against the configured public key and signed version 2.0.0; a changed byte was correctly rejected. Windows release CI [37190879737](https://github.com/x1pee/High./actions/runs/37190879737) passed. Public release time: 2026-10-04 09:20 UTC. This test upgraded a separate copy, not the user's installed app; the user's older window was restored afterward.
+
+Linux, macOS, and Android jobs in [37190739671](https://github.com/x1pee/High./actions/runs/37190739671) passed and produced QA artifacts. The redundant Windows job in that run failed on the old workspace path and has been removed; the repaired Windows release job above passed.
 
 Linux, macOS, and Android workflows produce QA artifacts. Successful compilation does not establish native runtime behavior or production signing on those platforms.
 
