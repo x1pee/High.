@@ -18,9 +18,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: windows-latest
-            command: npm run pack
-            artifact: src-tauri/target/release/high.exe
           - os: ubuntu-22.04
             command: npm run tauri -- build --bundles appimage --config src-tauri/tauri.qa.conf.json
             artifact: src-tauri/target/release/bundle/
