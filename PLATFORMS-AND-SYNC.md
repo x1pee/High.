@@ -6,14 +6,14 @@
 
 `.github/workflows/updater-release.yml` запускается по тегам `v1.9.*`, `v2.*` или вручную для существующего тега: проверяет JS и Rust, собирает Windows EXE, подписывает его и публикует EXE вместе с `.sig` и `latest.json`. Приватные исходники загружаются в RUNNER_TEMP, потому что точка в имени репозитория ломает стандартный Windows workspace. Windows распространяется без установщика и MSI. Для macOS используется архив приложения, для Linux — AppImage.
 
-`.github/workflows/tauri.yml` запускается по тегам `v2.*` и прикладывает Linux AppImage, macOS app и Android debug APK к запуску GitHub Actions. Windows проверяет отдельный release workflow; iOS в текущий workflow не входит. В релиз v2.0.0 также загружены Linux x64 AppImage, macOS ARM64 архив High.app с сохранёнными правами запуска и Android ARM64 debug APK. QA-сборки не проверены на физических устройствах; Android имеет debug-подпись, macOS не имеет Apple-подписи/notarization. Автообновление проверено только на Windows.
+`.github/workflows/tauri.yml` запускается по тегам `v2.*` и прикладывает Linux AppImage, macOS app и Android debug APK к запуску GitHub Actions. Windows проверяет отдельный release workflow; iOS в текущий workflow не входит. В релиз v2.0.0 также загружены Linux x64 AppImage, macOS ARM64 архив High.app с сохранёнными правами запуска и Android ARM64 release APK. QA-сборки не проверены на физических устройствах; Android имеет постоянную release-подпись, macOS не имеет Apple-подписи/notarization. Автообновление проверено только на Windows.
 
 | Платформа | Команда / результат | Что установить или учесть |
 | --- | --- | --- |
 | Windows | `npm ci`, `npm test`, `npm run pack`; собирает `src-tauri/target/release/high.exe` | Node.js 24, Rust stable/MSVC, Microsoft C++ Build Tools с Desktop development with C++, WebView2. Официальный release EXE отдельно подписывает updater workflow. |
 | Linux | `npm run pack:linux`; AppImage | Linux-машина или Ubuntu runner; Rust stable, Node.js 24 и системные библиотеки WebKitGTK, GTK/appindicator, OpenSSL, librsvg, xdo и patchelf. Пакеты отличаются по дистрибутивам. |
 | macOS | `npm run pack:mac`; `.app` (архив tar.gz) | Mac и Xcode Command Line Tools. Публичное распространение приложения требует подписи и notarization. |
-| Android | `npm run android:init -- --ci`, затем `npm run android:build -- --debug --target aarch64 --apk` | Android Studio, Android SDK Platform/Platform Tools/Build Tools/Command-line Tools, NDK side-by-side, Java 21 или JBR из Android Studio и Rust Android target. CI собирает debug APK; подпись магазина не настроена. |
+| Android | `npm run android:init -- --ci`, затем `npm run android:build -- --target aarch64 --apk` | Android Studio, Android SDK Platform/Platform Tools/Build Tools/Command-line Tools, NDK side-by-side, Java 21 или JBR из Android Studio и Rust Android target. CI собирает оптимизированный release APK и подписывает постоянным ключом ANDROID_SIGNING_KEY / ANDROID_SIGNING_CERT из GitHub Secrets; публикация в Google Play не настроена. |
 | iOS | Отложено по решению пользователя: Apple Developer аккаунта нет | Сборка и распространение iOS отдельно не настроены. |
 
 Точные Linux-зависимости для Ubuntu, переменные Android SDK/NDK и цели Rust перечислены в [официальных prerequisites Tauri](https://v2.tauri.app/start/prerequisites/). Для распространения desktop-сборок потребуется настроить подпись, особенно для macOS.
@@ -29,3 +29,9 @@
 Отдельный VPS сейчас покупать не нужно: Worker и D1 размещает Cloudflare. У бесплатного тарифа есть ограничения и нужно самостоятельно хранить резервную копию шифрованных данных; D1 Free сейчас предоставляет семидневное восстановление по времени.
 
 Для фоновой синхронизации ещё нужны очередь изменений при отсутствии сети, автоматическая проверка после запуска/возврата приложения, безопасное разрешение одновременных правок и синхронизация удалений. Пока дневник остаётся локальным до нажатия «Синхронизировать сейчас»; перед первой загрузкой приложение отдельно запрашивает подтверждение. Ревизии на сервере защищают от тихой перезаписи, но пока при конфликте пользователь выбирает одну из двух целых копий.
+
+## Android: уменьшение размера
+
+Прежний debug APK весил 156 287 743 байта; библиотека libhigh_lib.so занимала 148 317 728 байт. Новый workflow использует release-профиль Cargo: opt-level=s, LTO, strip=true, panic=abort и одну ARM64 архитектуру. APK выравнивается zipalign и проверяется apksigner. Ключ и сертификат хранятся вне репозитория и в GitHub Secrets. Новый ключ отличается от прежнего временного debug-ключа: перед удалением старого приложения нужно экспортировать дневник, затем импортировать в новую версию.
+
+Проверка 04.10.2026: CI run 37196334477 завершён успешно. Release APK: 8 405 524 байта, библиотека ARM64: 5 536 720 байт, .debug-секции отсутствуют. Подпись APK v2/v3 проверена apksigner; сертификат SHA-256 b14de2f5714763681f2077db268605c752cf1d94dd4bd0c33176f84e33a4e041. SHA-256 APK: f299570d1a0c0f338bb2b3cb5a66be59b1434fc7c2466c760b83d36ea4806d1e. Запуск на физическом Android пока не проверен.

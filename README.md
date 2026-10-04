@@ -21,7 +21,9 @@ Other platforms are available as **preview builds**:
 | --- | --- | --- |
 | Linux x64 | [AppImage](https://github.com/x1pee/High./releases/download/v2.0.0/High_2.0.0_linux_x64.AppImage) | Make the file executable, then open it. |
 | macOS Apple Silicon | [High.app archive](https://github.com/x1pee/High./releases/download/v2.0.0/High_2.0.0_macos_arm64_preview.tar.gz) | Extract and open High.app. No Apple signing or notarization; macOS may block it. Intel Macs are not supported by this build. |
-| Android ARM64 | [Debug APK](https://github.com/x1pee/High./releases/download/v2.0.0/High_2.0.0_android_arm64_debug.apk) | Test build, outside Google Play. Debug signing is not a stable release signing setup. |
+| Android ARM64 | [APK](https://github.com/x1pee/High./releases/download/v2.0.0/High_2.0.0_android_arm64.apk) | 8.4 MB optimized release build with a persistent Android signing key; outside Google Play. |
+
+If you installed the previous Android debug APK, export your journal before removing it: Android cannot install this release over an app signed with the old debug key. Import the journal after installing the new APK.
 
 These builds passed compilation, but have not been tested on physical devices. Built-in updates are verified on Windows only. **iPhone is postponed** until Apple signing and distribution are configured.
 

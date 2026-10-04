@@ -89,13 +89,15 @@ jobs:
           printf '%s' "$ANDROID_SIGNING_CERT" | base64 --decode > "$RUNNER_TEMP/high-android.x509.pem"
           chmod 600 "$RUNNER_TEMP/high-android.pk8"
           mkdir -p android-release
+          version=$(node -p "JSON.parse(require('fs').readFileSync('package.json')).version")
+          apk_out="android-release/High_${version}_android_arm64.apk"
           apk=$(find src-tauri/gen/android/app/build/outputs/apk -name '*release-unsigned.apk' -print -quit)
           test -n "$apk"
           tools="$ANDROID_HOME/build-tools/35.0.0"
           "$tools/zipalign" -f -p 4 "$apk" "$RUNNER_TEMP/high-aligned.apk"
-          "$tools/apksigner" sign --key "$RUNNER_TEMP/high-android.pk8" --cert "$RUNNER_TEMP/high-android.x509.pem" --out android-release/High_2.0.0_android_arm64.apk "$RUNNER_TEMP/high-aligned.apk"
-          "$tools/apksigner" verify --verbose --print-certs android-release/High_2.0.0_android_arm64.apk
-          "$tools/aapt" dump badging android-release/High_2.0.0_android_arm64.apk > "$RUNNER_TEMP/android-badging.txt"
+          "$tools/apksigner" sign --key "$RUNNER_TEMP/high-android.pk8" --cert "$RUNNER_TEMP/high-android.x509.pem" --out "$apk_out" "$RUNNER_TEMP/high-aligned.apk"
+          "$tools/apksigner" verify --verbose --print-certs "$apk_out"
+          "$tools/aapt" dump badging "$apk_out" > "$RUNNER_TEMP/android-badging.txt"
           head -20 "$RUNNER_TEMP/android-badging.txt"
           sha256sum android-release/*.apk
           rm -f "$RUNNER_TEMP/high-android.pk8" "$RUNNER_TEMP/high-android.x509.pem"
