@@ -23,11 +23,11 @@ test('Tauri bridge preserves Electron journals, revisions, recovery and deleted 
     if (command === 'preferences') return { platform: 'win32', portable: false };
     if (command === 'check_portable_update') {
       updateCalls.push(command);
-      return { version: '1.9.24', displayVersion: '1.9.9.20', notes: 'Update test' };
+      return { version: '2.0.1', displayVersion: '2.0.1', notes: 'Update test' };
     }
     if (command === 'download_portable_update') {
       updateCalls.push(command);
-      return { size: 1234, version: '1.9.9.20' };
+      return { size: 1234, version: '2.0.1' };
     }
     if (command === 'install_portable_update') {
       updateCalls.push(command);
@@ -58,10 +58,10 @@ test('Tauri bridge preserves Electron journals, revisions, recovery and deleted 
   let api = await start();
   assert.equal(api.updateState() instanceof Promise, true);
   const updateState = await api.updateState();
-  assert.equal(updateState.version, "1.9.9.19");
+  assert.equal(updateState.version, "2.0.0");
   assert.ok(updateState.history.length >= 8);
-  assert.equal(updateState.history[0].version, "1.9.9.19");
-  assert.equal((await api.checkUpdate()).targetVersion, '1.9.9.20');
+  assert.equal(updateState.history[0].version, "2.0.0");
+  assert.equal((await api.checkUpdate()).targetVersion, '2.0.1');
   assert.equal((await api.downloadUpdate()).state, 'downloaded');
   assert.equal((await api.installUpdate()).state, 'installed');
   assert.deepEqual(updateCalls, ['check_portable_update', 'download_portable_update', 'install_portable_update']);

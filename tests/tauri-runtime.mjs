@@ -53,7 +53,7 @@ try {
   assert.equal(appPreferences.portable, false, 'installed builds must expose the updater');
   const updateState = await page.evaluate(() => window.desktop.updateState());
   assert.equal(updateState.state, 'idle');
-  assert.equal(updateState.version, '1.9.9.19');
+  assert.equal(updateState.version, '2.0.0');
   await page.locator('#start-form [type=submit]').click();
   await page.locator('#coin-form [type=submit]').click();
   await page.waitForSelector('dialog', { state: 'detached' });
@@ -68,7 +68,7 @@ try {
     return { actual: getComputedStyle(dot).color, expected };
   });
   assert.equal(brandDotColors.actual, brandDotColors.expected);
-  assert.equal(await page.locator('.footer-version').innerText(), 'High. 1.9.9.19');
+  assert.equal(await page.locator('.footer-version').innerText(), 'High. 2.0.0');
   await page.locator('#add-event').click();
   await page.locator('[name=text]').fill('Настоящий WebView2');
   await page.locator('[name=delta]').fill('8');

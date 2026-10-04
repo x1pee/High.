@@ -1,5 +1,6 @@
 // English interface copy. User-authored content never passes through this catalog.
 export default {
+  "Русский и английский интерфейс, свободное перемещение графика, анимация быстрых изменений и ручная зашифрованная синхронизация.": "English and Russian interface, flexible chart navigation, animated quick moves, and encrypted manual sync.",
   "г.": "y.",
   "Наведись на свечу · объём = сумма изменений по модулю": "Hover a candle · volume = total absolute change",
   "Закрыть": "Close",

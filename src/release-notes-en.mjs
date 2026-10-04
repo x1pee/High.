@@ -1,4 +1,5 @@
 export const ENGLISH_RELEASE_NOTES = {
+  "2.0.0": "English and Russian interface, flexible chart navigation, animated quick moves, and encrypted manual sync. Private GitHub updates require manual download; mobile builds are still in testing.",
   '1.9.9.19': 'The Windows app is distributed as a portable EXE. Signed updates replace the app file while keeping your journal in its existing local profile.',
   '1.9.9.18': 'Auto locks vertical panning. Explore empty future space and draw trend lines there. Repeated quick moves combine within five minutes with animated totals. Random sample events are now optional under Experiments. Signed GitHub updates ask before downloading and installing.',
   '1.9.9.17': 'Candle cards appear near the selected candle. A more compact first-run screen keeps actions in view. Pan and scale the chart vertically. Manual Cloudflare sync is available. Desktop and phone-size browser layouts were tested.',

@@ -19,6 +19,9 @@ jobs:
         with:
           node-version: 24
       - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: repo/src-tauri
       - name: Check tagged source
         shell: pwsh
         working-directory: ${{ github.workspace }}/repo
@@ -58,6 +61,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           name: High ${{ github.ref_name }}
-          body: "Portable Windows executable only. Download High_*.exe and replace your current file after closing the app. No installer, MSI or ZIP is included."
+          body_path: ${{ github.workspace }}/repo/RELEASE-NOTES.md
           files: ${{ github.workspace }}/repo/release/*
           fail_on_unmatched_files: true

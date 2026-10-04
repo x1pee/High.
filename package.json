@@ -1,9 +1,9 @@
 {
   "name": "high",
   "productName": "High",
-  "version": "1.9.23",
-  "appVersion": "1.9.9.19",
-  "description": "Личный дневник в ритме жизни",
+  "version": "2.0.0",
+  "appVersion": "2.0.0",
+  "description": "Your life, one entry at a time. An offline journal with a personal chart.",
   "author": "x1pee",
   "license": "MIT",
   "type": "module",

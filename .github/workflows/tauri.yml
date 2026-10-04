@@ -22,10 +22,10 @@ jobs:
             command: npm run pack
             artifact: src-tauri/target/release/high.exe
           - os: ubuntu-22.04
-            command: npm run pack:linux
+            command: npm run tauri -- build --bundles appimage --config src-tauri/tauri.qa.conf.json
             artifact: src-tauri/target/release/bundle/
           - os: macos-latest
-            command: npm run pack:mac
+            command: npm run tauri -- build --bundles app --config src-tauri/tauri.qa.conf.json
             artifact: src-tauri/target/release/bundle/
     runs-on: ${{ matrix.os }}
     steps:
@@ -35,6 +35,9 @@ jobs:
           node-version: 24
           cache: npm
       - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
       - name: Linux prerequisites
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev libxdo-dev build-essential libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf

@@ -2,8 +2,8 @@ import { localizeUI } from "./i18n.mjs";
 // Build scripts replace this fallback with the latest entries from CHANGELOG.md.
 export const RELEASE_HISTORY = [
   {
-    version: "1.9.9.19",
+    version: "2.0.0",
     notes:
-      localizeUI("Подготовлен следующий подписанный релиз для проверки автообновления установленной версии; дневник остаётся в прежнем локальном профиле."),
+      localizeUI("Русский и английский интерфейс, свободное перемещение графика, анимация быстрых изменений и ручная зашифрованная синхронизация."),
   },
 ];

@@ -87,10 +87,10 @@ try {
       await page.screenshot({path: path.join(shots, 'starter.png'), fullPage:true});
       await page.locator('#updates').click();
       await page.waitForSelector('#release-history .release-row');
-      assert.equal(await page.locator('[data-current-version]').innerText(), 'High. 1.9.9.19');
+      assert.equal(await page.locator('[data-current-version]').innerText(), 'High. 2.0.0');
       assert.ok(await page.locator('#release-history .release-row').count() >= 8);
-      assert.equal(await page.locator('#release-history .release-row').first().locator('b').innerText(), '1.9.9.19');
-      assert.equal(await page.locator('#release-history .release-row').nth(1).locator('b').innerText(), '1.9.9.18');
+      assert.equal(await page.locator('#release-history .release-row').first().locator('b').innerText(), '2.0.0');
+      assert.equal(await page.locator('#release-history .release-row').nth(1).locator('b').innerText(), '1.9.9.19');
       await page.locator('dialog[open]').screenshot({path:path.join(shots, 'release-history.png')});
       await page.locator('dialog[open] .modal-close').click();
       await page.locator('#settings').click();
