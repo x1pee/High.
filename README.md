@@ -15,7 +15,17 @@ Download **High_2.0.0_x64.exe** from [Releases](https://github.com/x1pee/High./r
 
 Your journal lives in `%APPDATA%\Vyshe`. High. checks GitHub for updates and highlights the update button when a new version is available. Download and restart after confirmation; your entries stay on your device. You can also replace the EXE manually after closing High.
 
-**2.0 is the Windows release.** Linux, macOS, and Android builds are being tested. Sync transfers individual graphs manually through a pairing file; keep that file private. [Sync guide](cloudflare/README.md) · [Platform status](PLATFORMS-AND-SYNC.md).
+Other platforms are available as **preview builds**:
+
+| Platform | Download | Notes |
+| --- | --- | --- |
+| Linux x64 | [AppImage](https://github.com/x1pee/High./releases/download/v2.0.0/High_2.0.0_linux_x64.AppImage) | Make the file executable, then open it. |
+| macOS Apple Silicon | [High.app archive](https://github.com/x1pee/High./releases/download/v2.0.0/High_2.0.0_macos_arm64_preview.tar.gz) | Extract and open High.app. No Apple signing or notarization; macOS may block it. Intel Macs are not supported by this build. |
+| Android ARM64 | [Debug APK](https://github.com/x1pee/High./releases/download/v2.0.0/High_2.0.0_android_arm64_debug.apk) | Test build, outside Google Play. Debug signing is not a stable release signing setup. |
+
+These builds passed compilation, but have not been tested on physical devices. Built-in updates are verified on Windows only. **iPhone is postponed** until Apple signing and distribution are configured.
+
+Sync transfers individual graphs manually through a pairing file; keep that file private. [Sync guide](cloudflare/README.md) · [Platform status](PLATFORMS-AND-SYNC.md).
 
 ## По-русски
 

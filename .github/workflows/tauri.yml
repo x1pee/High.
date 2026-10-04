@@ -20,10 +20,10 @@ jobs:
         include:
           - os: ubuntu-22.04
             command: npm run tauri -- build --bundles appimage --config src-tauri/tauri.qa.conf.json
-            artifact: src-tauri/target/release/bundle/
+            artifact: src-tauri/target/release/bundle/appimage/*.AppImage
           - os: macos-latest
             command: npm run tauri -- build --bundles app --config src-tauri/tauri.qa.conf.json
-            artifact: src-tauri/target/release/bundle/
+            artifact: src-tauri/target/release/bundle/macos/*.tar.gz
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -44,6 +44,9 @@ jobs:
       - run: ${{ matrix.command }}
         env:
           VYSHE_INSTALLED_BUILD: "1"
+      - name: Archive macOS app with executable permissions
+        if: runner.os == 'macOS'
+        run: tar -czf src-tauri/target/release/bundle/macos/High-macos-arm64-preview.tar.gz -C src-tauri/target/release/bundle/macos High.app
       - uses: actions/upload-artifact@v4
         with:
           name: high-tauri-${{ matrix.os }}-${{ github.ref_name }}

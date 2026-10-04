@@ -4,17 +4,17 @@
 
 ## Сборки
 
-`.github/workflows/updater-release.yml` запускается по тегам `v1.9.*`, `v2.*` или вручную для существующего тега: проверяет JS и Rust, собирает Windows EXE, подписывает его и публикует EXE вместе с `.sig` и `latest.json`. Приватные исходники загружаются в RUNNER_TEMP, потому что точка в имени репозитория ломает стандартный Windows workspace. В релизе нет установщика, MSI или ZIP.
+`.github/workflows/updater-release.yml` запускается по тегам `v1.9.*`, `v2.*` или вручную для существующего тега: проверяет JS и Rust, собирает Windows EXE, подписывает его и публикует EXE вместе с `.sig` и `latest.json`. Приватные исходники загружаются в RUNNER_TEMP, потому что точка в имени репозитория ломает стандартный Windows workspace. Windows распространяется без установщика и MSI. Для macOS используется архив приложения, для Linux — AppImage.
 
-`.github/workflows/tauri.yml` запускается по тегам `v2.*` и прикладывает Linux AppImage, macOS app и Android debug APK к запуску GitHub Actions. Windows проверяет отдельный release workflow; iOS в текущий workflow не входит. QA-сборки не являются подписанными мобильными релизами.
+`.github/workflows/tauri.yml` запускается по тегам `v2.*` и прикладывает Linux AppImage, macOS app и Android debug APK к запуску GitHub Actions. Windows проверяет отдельный release workflow; iOS в текущий workflow не входит. В релиз v2.0.0 также загружены Linux x64 AppImage, macOS ARM64 архив High.app с сохранёнными правами запуска и Android ARM64 debug APK. QA-сборки не проверены на физических устройствах; Android имеет debug-подпись, macOS не имеет Apple-подписи/notarization. Автообновление проверено только на Windows.
 
 | Платформа | Команда / результат | Что установить или учесть |
 | --- | --- | --- |
 | Windows | `npm ci`, `npm test`, `npm run pack`; собирает `src-tauri/target/release/high.exe` | Node.js 24, Rust stable/MSVC, Microsoft C++ Build Tools с Desktop development with C++, WebView2. Официальный release EXE отдельно подписывает updater workflow. |
-| Linux | `npm run pack:linux`; AppImage и `.deb` | Linux-машина или Ubuntu runner; Rust stable, Node.js 24 и системные библиотеки WebKitGTK, GTK/appindicator, OpenSSL, librsvg, xdo и patchelf. Пакеты отличаются по дистрибутивам. |
-| macOS | `npm run pack:mac`; `.app` и `.dmg` | Mac и Xcode Command Line Tools. Публичное распространение приложения требует подписи и notarization. |
+| Linux | `npm run pack:linux`; AppImage | Linux-машина или Ubuntu runner; Rust stable, Node.js 24 и системные библиотеки WebKitGTK, GTK/appindicator, OpenSSL, librsvg, xdo и patchelf. Пакеты отличаются по дистрибутивам. |
+| macOS | `npm run pack:mac`; `.app` (архив tar.gz) | Mac и Xcode Command Line Tools. Публичное распространение приложения требует подписи и notarization. |
 | Android | `npm run android:init -- --ci`, затем `npm run android:build -- --debug --target aarch64 --apk` | Android Studio, Android SDK Platform/Platform Tools/Build Tools/Command-line Tools, NDK side-by-side, Java 21 или JBR из Android Studio и Rust Android target. CI собирает debug APK; подпись магазина не настроена. |
-| iOS | Не входит в текущий план выпуска | Сборка и распространение iOS отдельно не настроены. |
+| iOS | Отложено по решению пользователя: Apple Developer аккаунта нет | Сборка и распространение iOS отдельно не настроены. |
 
 Точные Linux-зависимости для Ubuntu, переменные Android SDK/NDK и цели Rust перечислены в [официальных prerequisites Tauri](https://v2.tauri.app/start/prerequisites/). Для распространения desktop-сборок потребуется настроить подпись, особенно для macOS.
 
