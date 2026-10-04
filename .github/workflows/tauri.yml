@@ -74,9 +74,33 @@ jobs:
       - run: echo "NDK_HOME=$ANDROID_HOME/ndk/27.2.12479018" >> "$GITHUB_ENV"
       - run: npm ci
       - run: npm run android:init -- --ci
-      - run: npm run android:build -- --debug --target aarch64 --apk
+      - run: npm run android:build -- --target aarch64 --apk
+        env:
+          VYSHE_INSTALLED_BUILD: "1"
+      - name: Sign and verify release APK
+        env:
+          ANDROID_SIGNING_KEY: ${{ secrets.ANDROID_SIGNING_KEY }}
+          ANDROID_SIGNING_CERT: ${{ secrets.ANDROID_SIGNING_CERT }}
+        run: |
+          set -euo pipefail
+          test -n "$ANDROID_SIGNING_KEY"
+          test -n "$ANDROID_SIGNING_CERT"
+          printf '%s' "$ANDROID_SIGNING_KEY" | base64 --decode > "$RUNNER_TEMP/high-android.pk8"
+          printf '%s' "$ANDROID_SIGNING_CERT" | base64 --decode > "$RUNNER_TEMP/high-android.x509.pem"
+          chmod 600 "$RUNNER_TEMP/high-android.pk8"
+          mkdir -p android-release
+          apk=$(find src-tauri/gen/android/app/build/outputs/apk -name '*release-unsigned.apk' -print -quit)
+          test -n "$apk"
+          tools="$ANDROID_HOME/build-tools/35.0.0"
+          "$tools/zipalign" -f -p 4 "$apk" "$RUNNER_TEMP/high-aligned.apk"
+          "$tools/apksigner" sign --key "$RUNNER_TEMP/high-android.pk8" --cert "$RUNNER_TEMP/high-android.x509.pem" --out android-release/High_2.0.0_android_arm64.apk "$RUNNER_TEMP/high-aligned.apk"
+          "$tools/apksigner" verify --verbose --print-certs android-release/High_2.0.0_android_arm64.apk
+          "$tools/aapt" dump badging android-release/High_2.0.0_android_arm64.apk > "$RUNNER_TEMP/android-badging.txt"
+          head -20 "$RUNNER_TEMP/android-badging.txt"
+          sha256sum android-release/*.apk
+          rm -f "$RUNNER_TEMP/high-android.pk8" "$RUNNER_TEMP/high-android.x509.pem"
       - uses: actions/upload-artifact@v4
         with:
-          name: high-tauri-android-debug-${{ github.ref_name }}
-          path: src-tauri/gen/android/app/build/outputs/apk/**/*.apk
+          name: high-tauri-android-release-${{ github.ref_name }}
+          path: android-release/*.apk
           if-no-files-found: error
