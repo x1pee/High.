@@ -49,7 +49,7 @@ test("4h spans three weeks continuously and preserves every day close and real e
   assert.equal(bars.flatMap((c) => c.events).length, 126);
   assert.equal(JSON.stringify(j), source);
 });
-test("1h and 5m cross midnight; missing days have no invented movement, no future candles", () => {
+test("1h and 5m cross midnight; empty days animate visually without events or changed totals", () => {
   let j = createJournal("T", 1000);
   j = upsertEvent(j, {
     date: "2026-09-01",
@@ -74,11 +74,13 @@ test("1h and 5m cross midnight; missing days have no invented movement, no futur
     assert(bars.length > 24);
     assert.equal(bars.at(-1).to, minuteAt("2026-09-03", 30));
     assert.equal(bars.at(-1).close, 1010);
-    for (const c of bars.filter((c) => c.date === "2026-09-02"))
-      assert.deepEqual(
-        [c.open, c.close, c.high, c.low, c.synthetic],
-        [1005, 1005, 1005, 1005, false],
-      );
+    const empty = bars.filter((c) => c.date === "2026-09-02");
+    assert(empty.some(c => c.close !== c.open));
+    assert(empty.every(c => c.synthetic && !c.recorded && !c.events.length && c.realDelta === 0));
+    assert.equal(empty[0].open, 1005);
+    assert.equal(empty.at(-1).close, 1005);
+    const flat = timeline(calculate(j), 1000, interval, minuteAt("2026-09-02"), minuteAt("2026-09-03"), false);
+    assert(flat.every(c => c.open === 1005 && c.close === 1005 && !c.synthetic));
   }
   assert.deepEqual(
     timeline([], 1000, 60, minuteAt("2026-09-01"), minuteAt("2026-09-03")),

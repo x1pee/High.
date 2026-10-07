@@ -58,9 +58,9 @@ test('Tauri bridge preserves Electron journals, revisions, recovery and deleted 
   let api = await start();
   assert.equal(api.updateState() instanceof Promise, true);
   const updateState = await api.updateState();
-  assert.equal(updateState.version, "2.0.0");
+  assert.equal(updateState.version, "2.0.0.1");
   assert.ok(updateState.history.length >= 8);
-  assert.equal(updateState.history[0].version, "2.0.0");
+  assert.equal(updateState.history[0].version, "2.0.0.1");
   assert.equal((await api.checkUpdate()).targetVersion, '2.0.1');
   assert.equal((await api.downloadUpdate()).state, 'downloaded');
   assert.equal((await api.installUpdate()).state, 'installed');

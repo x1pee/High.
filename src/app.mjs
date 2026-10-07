@@ -5,6 +5,7 @@ import { visibleSummary, rangePeriod, visibleTurnover } from './market-summary.m
 import { periodBounds, shiftPeriodAnchor, summarizePeriod } from "./period-summary.mjs";
 import { chartVolume, eventVolume, volumeTone } from "./chart-volume.mjs";
 import { appendFutureBars } from "./chart-future.mjs";
+import { visualCandle } from "./visual-candles.mjs";
 import { chooseQuickMove, recentQuickMove } from "./quick-moves.mjs";
 import {
   getVolumePanelHeight,
@@ -1677,7 +1678,7 @@ function prepareChartView(range) {
         journal.settings.rhythmStrength ?? 4,
       );
   }
-  const raw = [...prefix, ...visible];
+  const raw = [...prefix, ...visible].map(visualCandle);
   const display = chartStyle === "heikin" ? heikinAshi(raw) : raw;
   visualBars = display.slice(prefix.length);
   if (!showAverage) {
@@ -2207,11 +2208,10 @@ function updateDraggedChart() {
 function updateDraggedPriceRange() {
   priceDragFrame = null;
   if (!priceDrag || !geometry || autoRange) return;
-  manualPriceRange = shiftPriceRange(
-    priceDrag.origin,
-    priceDrag.currentY - priceDrag.y,
-    priceDrag.plotHeight,
-  );
+  const delta = priceDrag.currentY - priceDrag.y;
+  manualPriceRange = priceDrag.mode === "scale"
+    ? scalePriceRange(priceDrag.origin, Math.exp(delta / priceDrag.plotHeight * 2.5))
+    : shiftPriceRange(priceDrag.origin, delta, priceDrag.plotHeight);
   drawChart();
 }
 function updatePriceWheelScale() {
@@ -2517,16 +2517,16 @@ function bindChart() {
     }
     if (e.button !== 0) return;
     if (
-      !drawTool &&
-      !measuring &&
       xx >= geometry.width - geometry.right &&
       xx <= geometry.width &&
       yy >= geometry.top &&
       yy <= geometry.height - geometry.bottom
     ) {
       e.preventDefault();
+      if (autoRange) return;
       clearFocus();
       priceDrag = {
+        mode: "scale",
         y: e.clientY,
         currentY: e.clientY,
         origin: { low: geometry.low, high: geometry.high },
@@ -2774,6 +2774,8 @@ function animateNumberText(element, fromText, toText, move = "up") {
   for (const value of values) {
     const item = document.createElement("span");
     item.textContent = value;
+    if (/^[+]/.test(value)) item.style.color = "var(--up)";
+    else if (/^[-−]/.test(value)) item.style.color = "var(--down)";
     track.append(item);
   }
   const oldLabel = element.getAttribute("aria-label");

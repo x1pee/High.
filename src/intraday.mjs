@@ -29,7 +29,7 @@ export function bridgeValue(a, b, t, seed = 0, animated = true, strength = 1) {
 export function intraday(
   day,
   interval = 1,
-  { interpolate = true, until = 1440, strength = 1 } = {},
+  { interpolate = true, until = 1440, strength = 1, visualEmpty = false } = {},
 ) {
   if (![1, 5, 15, 60, 240].includes(interval))
     throw new Error("Unsupported interval");
@@ -39,7 +39,7 @@ export function intraday(
     minute: minuteOf(e.time ?? "12:00"),
   }));
   // No observations means no series, including note-only days.
-  if (!events.length) return [];
+  if (!events.length && !(visualEmpty && interpolate)) return [];
   until = Math.max(until, ...events.map((e) => e.minute + 1));
   const anchors = [{ t: 0, value: day.open }],
     seed = Number(day.date.replaceAll("-", ""));

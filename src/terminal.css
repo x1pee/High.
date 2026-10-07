@@ -724,13 +724,13 @@ html[lang="en"] .chart-toolbar-actions .chart-subtitle { font-size: 10px; }
   white-space: nowrap;
 }
 .number-roll-track.roll-up {
-  color: var(--up);
+  color: inherit;
 }
 .number-roll-track.roll-up.rolling {
   transform: translateY(-50%);
 }
 .number-roll-track.roll-down {
-  color: var(--down);
+  color: inherit;
   transform: translateY(-50%);
 }
 .number-roll-track.roll-down.rolling {

@@ -72,7 +72,10 @@ test("minute history remains visible after last event, never invents events befo
   assert.deepEqual(timeline(d, 100, 1, origin, origin + 60), []);
   const later = timeline(d, 100, 1, origin + 2 * 1440, origin + 2 * 1440 + 60);
   assert.equal(later.length, 60);
-  assert(later.every((b) => b.close === 105));
+  assert(later.every((b) => !b.recorded && !b.events.length && b.realDelta === 0));
+  assert(later.some((b) => b.close !== b.open));
+  assert.equal(later[0].open, 105);
+  assert.equal(later.at(-1).close, 105);
 });
 test("visual rhythm never crosses positive floor near zero", () => {
   for (let t = 0; t <= 100; t += 0.25)

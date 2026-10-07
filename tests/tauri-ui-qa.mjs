@@ -87,10 +87,10 @@ try {
       await page.screenshot({path: path.join(shots, 'starter.png'), fullPage:true});
       await page.locator('#updates').click();
       await page.waitForSelector('#release-history .release-row');
-      assert.equal(await page.locator('[data-current-version]').innerText(), 'High. 2.0.0');
+      assert.equal(await page.locator('[data-current-version]').innerText(), 'High. 2.0.0.1');
       assert.ok(await page.locator('#release-history .release-row').count() >= 8);
-      assert.equal(await page.locator('#release-history .release-row').first().locator('b').innerText(), '2.0.0');
-      assert.equal(await page.locator('#release-history .release-row').nth(1).locator('b').innerText(), '1.9.9.19');
+      assert.equal(await page.locator('#release-history .release-row').first().locator('b').innerText(), '2.0.0.1');
+      assert.equal(await page.locator('#release-history .release-row').nth(1).locator('b').innerText(), '2.0.0');
       await page.locator('dialog[open]').screenshot({path:path.join(shots, 'release-history.png')});
       await page.locator('dialog[open] .modal-close').click();
       await page.locator('#settings').click();
@@ -160,6 +160,16 @@ try {
         /roll-down/,
       );
       await page.screenshot({ path: path.join(shots, 'quick-move-roll-down.png') });
+      const signedRolls = await page.locator('#day-panel .number-roll-track > span').evaluateAll(nodes => {
+        const probe = document.createElement('span');
+        probe.style.color = 'var(--up)';
+        document.body.append(probe);
+        const up = getComputedStyle(probe).color;
+        probe.remove();
+        return nodes.map(n => ({text:n.textContent,color:getComputedStyle(n).color,up}));
+      });
+      assert.ok(signedRolls.some(n => n.text.startsWith('+')), 'fixture must still have a positive day after the down move');
+      assert.ok(signedRolls.filter(n => n.text.startsWith('+')).every(n => n.color === n.up), 'positive totals must stay green during a down animation');
       await page.waitForFunction(() => !document.querySelector('.main-value .number-roll-track'));
       await page.evaluate(async () => {
         const { upsertEvent, upsertDay, localDate, shiftDate } = await import('/src/domain.mjs');
@@ -331,6 +341,22 @@ try {
       await page.mouse.wheel(0, 300);
       await page.waitForTimeout(80);
       assert.ok(await candleSpread() < beforePriceZoom, 'wheel over the right price scale should zoom out vertically');
+      const beforeAxisDrag = await candleSpread();
+      const axisX = priceScaleBox.x + priceScaleBox.width - 18;
+      const axisY = priceScaleBox.y + priceScaleBox.height * 0.42;
+      await page.mouse.move(axisX, axisY);
+      await page.mouse.down();
+      await page.mouse.move(axisX, axisY - 70, {steps:8});
+      await page.mouse.up();
+      await page.waitForTimeout(80);
+      assert.ok(await candleSpread() > beforeAxisDrag * 1.1, 'dragging the price axis up stretches candle heights');
+      const afterAxisUp = await candleSpread();
+      await page.mouse.move(axisX, axisY);
+      await page.mouse.down();
+      await page.mouse.move(axisX, axisY + 70, {steps:8});
+      await page.mouse.up();
+      await page.waitForTimeout(80);
+      assert.ok(await candleSpread() < afterAxisUp / 1.1, 'dragging the price axis down compresses candle heights');
       await page.locator('#auto-range').click();
       await page.waitForFunction(() => document.querySelector('#chart')?.dataset.scale === 'auto');
       await page.mouse.move(5, 5);

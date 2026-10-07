@@ -1,18 +1,10 @@
-Your life, one entry at a time.
+High. 2.0.0.1
 
-- English and Russian interface with a saved language choice.
-- Flexible chart navigation, drawing tools, and animated quick moves.
-- Compact entry forms, keyboard shortcuts, and safer backups.
-- Optional encrypted manual sync through a pairing file.
+- Visual candles fill days without entries; your real totals stay unchanged.
+- Decorative wicks for regular and starter candles.
+- With Auto off, drag the right price scale up to stretch candles, down to compress.
+- Positive totals stay green during down-move animations.
 
-**Windows:** download **High_2.0.0_x64.exe** and open it. To upgrade, close High. and replace the old EXE. Your journal stays in `%APPDATA%\Vyshe`. No installer.
+Windows: open the portable EXE, or confirm the signed update in High. Your journal stays on your device. Android: optimized ARM64 APK with the existing release signing key.
 
-**Preview downloads:** [Linux x64 AppImage](https://github.com/x1pee/High./releases/download/v2.0.0/High_2.0.0_linux_x64.AppImage) · [macOS Apple Silicon app](https://github.com/x1pee/High./releases/download/v2.0.0/High_2.0.0_macos_arm64_preview.tar.gz) · [Android ARM64 APK](https://github.com/x1pee/High./releases/download/v2.0.0/High_2.0.0_android_arm64.apk).
-
-Linux: make the file executable. macOS: extract High.app; this preview has no Apple signing/notarization. Android: 8.4 MB optimized release APK with a persistent signing key, outside Google Play. Physical-device testing is pending. iPhone is postponed until Apple signing is configured.
-
-Built-in updates and the availability highlight are verified on Windows. Downloading and installing require confirmation.
-
-**Русский:** дневник на графике, два языка, удобные формы и анимация быстрых изменений. Скачай EXE и открой; при обновлении замени файл после закрытия приложения — записи сохранятся.
-
-**Android upgrade from the old debug APK:** export your journal before uninstalling; the signing key has changed. Install the new APK and import the journal.
+Русский: исправлены свечи в промежутках, тени, растягивание правой шкалы и цвет анимации итогов. Записи сохраняются.

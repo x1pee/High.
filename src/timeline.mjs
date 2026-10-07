@@ -43,7 +43,7 @@ export function timeline(
         return h * 60 + m < until;
       });
       const safeDay = { ...day, events, close: events.at(-1)?.after ?? day.open };
-      bars = intraday(safeDay, interval, { interpolate, until, strength });
+      bars = intraday(safeDay, interval, { interpolate, until, strength, visualEmpty: true });
       if (!dayCache) {
         dayCache = new Map();
         intradayDayCache.set(day, dayCache);

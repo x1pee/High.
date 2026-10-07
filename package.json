@@ -1,8 +1,8 @@
 {
   "name": "high",
   "productName": "High",
-  "version": "2.0.0",
-  "appVersion": "2.0.0",
+  "version": "2.0.1",
+  "appVersion": "2.0.0.1",
   "description": "Your life, one entry at a time. An offline journal with a personal chart.",
   "author": "x1pee",
   "license": "MIT",
