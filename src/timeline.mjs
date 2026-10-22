@@ -1,6 +1,7 @@
 import { localizeUI } from "./i18n.mjs";
-import { calendar, percentage } from "./domain.mjs";
-import { intraday, clockLabel } from "./intraday.mjs";
+import { percentage, round } from "./domain.mjs";
+import { clockLabel, minuteOf } from "./intraday.mjs";
+import { recordedGroups, rhythmBars } from "./rhythm.mjs";
 
 // Calendar coordinates, deliberately independent of DST or the device time zone.
 export const minuteAt = (date, minute = 0) =>
@@ -9,10 +10,10 @@ export const dateAt = (minute) =>
   new Date(minute * 60000).toISOString().slice(0, 10);
 export const DEFAULT_BARS = { 1: 180, 5: 144, 15: 128, 60: 168, 240: 126 };
 export const MAX_BARS = 2400;
-// A wheel zoom redraws nearby windows repeatedly. Keep each day's expensive
-// intraday interpolation so redraws can reuse it while the journal is unchanged.
-const intradayDayCache = new WeakMap();
-const firstEventCache = new WeakMap();
+// Calendar days are metadata only: a visual gap can cross midnight without
+// restarting its shape or forgetting the last actual impulse. Weak keys release
+// the history index when a journal recalculation replaces its array.
+const historyCache = new WeakMap();
 export function timeline(
   days,
   initial,
@@ -21,80 +22,48 @@ export function timeline(
   end,
   interpolate = true,
   observedEnd = end,
-  strength = 1,
+  strength = 4,
 ) {
+  if (![1, 5, 15, 60, 240].includes(interval))
+    throw new Error("Unsupported interval");
   end = Math.min(end, observedEnd);
-  if (end <= start || !days.some((d) => d.events.length)) return [];
+  if (end <= start) return [];
+  let history = historyCache.get(days);
+  if (!history) {
+    const events = days.flatMap(day => day.events.map(event => ({
+      ...event, date: day.date,
+      at: minuteAt(day.date, minuteOf(event.time ?? "12:00")), source: event,
+    }))).sort((a, b) => a.at - b.at || a.order - b.order);
+    history = { events, days: new Map(days.map(day => [day.date, day])), groups: new Map() };
+    historyCache.set(days, history);
+  }
+  const firstEvent = history.events[0]?.at;
+  if (firstEvent === undefined || firstEvent >= end) return [];
   start = Math.max(start, end - interval * MAX_BARS);
-  const first = dateAt(start),
-    last = dateAt(end - 1);
-  const range = calendar(days, initial, first, last);
-  const result = [];
-  for (const day of range) {
-    const origin = minuteAt(day.date),
-      // Anchors depend on recorded history and the current clock, never on panning.
-      until = Math.min(1440, observedEnd - origin);
-    const cacheKey = `${interval}|${interpolate ? 1 : 0}|${until}|${strength}`;
-    let dayCache = intradayDayCache.get(day);
-    let bars = dayCache?.get(cacheKey);
-    if (!bars) {
-      const events = day.events.filter((e) => {
-        const [h, m] = e.time.split(":").map(Number);
-        return h * 60 + m < until;
-      });
-      const safeDay = { ...day, events, close: events.at(-1)?.after ?? day.open };
-      bars = intraday(safeDay, interval, { interpolate, until, strength, visualEmpty: true });
-      if (!dayCache) {
-        dayCache = new Map();
-        intradayDayCache.set(day, dayCache);
-      }
-      dayCache.set(cacheKey, bars);
-      if (dayCache.size > 12) dayCache.delete(dayCache.keys().next().value);
-    }
-    if (!bars.length) {
-      // Missing observations remain flat and neutral, never artificial movement.
-      for (let t = 0; t < until; t += interval)
-        bars.push({
-          date: day.date,
-          time: clockLabel(t),
-          endTime: clockLabel(Math.min(until, t + interval)),
-          startMinute: t,
-          endMinute: Math.min(until, t + interval),
-          open: day.open,
-          close: day.open,
-          high: day.open,
-          low: day.open,
-          delta: 0,
-          percent: percentage(0, day.open),
-          recorded: false,
-          synthetic: false,
-          intraday: true,
-          title: "",
-          note: "",
-          events: [],
-          realDelta: 0,
-        });
-    }
-    for (const bar of bars) {
-      const from = origin + bar.startMinute,
-        to = origin + bar.endMinute;
-      if (to > start && from < end) result.push({ ...bar, from, to });
-    }
+  start = Math.floor(Math.max(start, firstEvent) / interval) * interval;
+  // Reuse repeated pans/zooms, but replace a clock tick's group index instead of
+  // retaining another entire copy of a potentially very large journal.
+  const cached = history.groups.get(interval);
+  let groups = cached?.horizon === observedEnd ? cached.groups : null;
+  if (!groups) {
+    groups = recordedGroups(history.events, interval, observedEnd);
+    history.groups.set(interval, { horizon: observedEnd, groups });
   }
-  // An empty window must not imply that any observations were made there.
-  let firstEvent = firstEventCache.get(days);
-  if (firstEvent === undefined) {
-    firstEvent = Infinity;
-    for (const day of days) {
-      const origin = minuteAt(day.date);
-      for (const event of day.events) {
-        const minute = Number(event.time.slice(0, 2)) * 60 + Number(event.time.slice(3));
-        firstEvent = Math.min(firstEvent, origin + minute);
-      }
-    }
-    firstEventCache.set(days, firstEvent);
-  }
-  return result.filter((c) => c.to > firstEvent);
+  return rhythmBars(groups, initial, interval, start, end, interpolate, strength, observedEnd)
+    .map(bar => {
+      const date = dateAt(bar.from), origin = minuteAt(date);
+      return {
+        date, time: clockLabel(bar.from - origin), endTime: clockLabel(bar.to - origin),
+        open: bar.open, close: bar.close, high: bar.high, low: bar.low,
+        delta: bar.close - bar.open,
+        percent: percentage(bar.close - bar.open, bar.open),
+        recorded: bar.events.length > 0, synthetic: interpolate, intraday: true,
+        title: history.days.get(date)?.title ?? "", note: "", events: bar.events,
+        realDelta: round(bar.events.reduce((sum, event) => sum + event.delta, 0)),
+        startMinute: bar.from - origin, endMinute: bar.to - origin,
+        from: bar.from, to: bar.to,
+      };
+    });
 }
 
 const UP = [

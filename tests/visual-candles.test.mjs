@@ -18,3 +18,12 @@ test('empty future and disabled visual rhythm do not invent extrema', () => {
     assert.equal(visualCandle(bar),bar);
   }
 });
+
+test('sampled visual gaps keep their impulse-bound extrema; tiny real events get proportionate tails', () => {
+  const gap={date:'2026-10-21',time:'10:20',open:100,close:100.001,high:100.002,low:99.998,intraday:true,synthetic:true,recorded:false};
+  const display=visualCandle(gap);
+  assert.equal(display.high,gap.high);
+  assert.equal(display.low,gap.low);
+  const tiny=visualCandle({...gap,open:100,close:100.001,high:100.001,low:100,recorded:true});
+  assert(tiny.high<100.002 && tiny.low>99.999);
+});

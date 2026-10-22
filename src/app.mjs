@@ -16,6 +16,13 @@ import {
 } from "./volume-layout.mjs";
 import { animateEventChart } from "./event-animation.mjs";
 import {
+  captureLogicalRange,
+  logicalToTime,
+  panLogicalRange,
+  timeToLogical,
+  zoomLogicalRange,
+} from "./chart-navigation.mjs";
+import {
   createStarter,
   starterChoice,
   starterBars,
@@ -155,15 +162,13 @@ const icon = (name, size = 20) =>
     }[name] || ""
   }</svg>`;
 let pendingEventAnimation = null;
-let animationFrame = null;
 let wheelFrame = null;
 let wheelDelta = 0;
 let wheelPan = false;
+let wheelAnchor = 0.5;
 let priceWheelFrame = null;
 let priceWheelDelta = 0;
 let priceWheelAnchor = 0.5;
-let wheelRemainder = 0;
-let wheelLastDraw = 0;
 let journal = null,
   personal = null,
   demo = false,
@@ -206,6 +211,7 @@ let averagePeriods = [14];
 let disposePanelLayout;
 let autoRange = true;
 let autoLayout = true;
+let horizontalViewport = null;
 let manualPriceRange = null;
 let groupMoments = true;
 try {
@@ -273,6 +279,7 @@ const axisText = (n) =>
     ? pct(percentage(n - journal.settings.initial, journal.settings.initial))
     : fmt(n);
 function resetViewport() {
+  horizontalViewport = null;
   autoRange = true;
   autoLayout = true;
   manualPriceRange = null;
@@ -756,6 +763,7 @@ function bindActivityDates() {
     (button) =>
       (button.onclick = () => {
         chooseDay(button.dataset.activityDate);
+        horizontalViewport = null;
         autoRange = false;
         manualPriceRange = null;
         autoLayout = false;
@@ -1282,6 +1290,12 @@ function intervalControls() {
   };
 }
 function windowRange() {
+  if (horizontalViewport && interval >= 1440) {
+    return {
+      start: dateAt(logicalToTime(horizontalViewport.from - 0.5, interval)),
+      end: dateAt(logicalToTime(horizontalViewport.to + 0.5, interval)),
+    };
+  }
   const b = boundaries();
   if (autoLayout && interval >= 1440) {
     const start = shiftDate(localDate(), -span + 1);
@@ -1324,11 +1338,12 @@ function drawChart() {
     );
   else {
     const earliest = minuteAt(candles[0]?.date ?? localDate());
-    intradayEnd = Math.min(
-      maxPanEnd(),
-      Math.max(earliest + 1, intradayEnd ?? chartHorizon()),
-    );
-    const viewportStart = intradayEnd - intradayCount;
+    intradayEnd = horizontalViewport
+      ? logicalToTime(horizontalViewport.to + 0.5, interval)
+      : Math.min(maxPanEnd(), Math.max(earliest + 1, intradayEnd ?? chartHorizon()));
+    const viewportStart = horizontalViewport
+      ? Math.floor(horizontalViewport.from - 0.5) * interval
+      : intradayEnd - intradayCount;
     visible = timeline(
       candles,
       journal.settings.initial,
@@ -1352,7 +1367,9 @@ function drawChart() {
     const starter = starterBars(
       journal,
       interval,
-      intradayEnd - intradayCount,
+      horizontalViewport
+        ? Math.floor(horizontalViewport.from - 0.5) * interval
+        : intradayEnd - intradayCount,
       intradayEnd,
     );
     visible = [...starter, ...visible];
@@ -1362,7 +1379,7 @@ function drawChart() {
   const hasEvents = journal.events.some((e) => !e.deletedAt);
   const hasStarter = visible.some((c) => c.starter);
   if ($("#next"))
-    $("#next").disabled = interval < 1440 ? intradayEnd >= maxPanEnd() : end >= maxPanEnd();
+    $("#next").disabled = false;
   const emptyDay = interval < 1440 && !visible.length;
   const empty = $("#chart-empty");
   empty.hidden = (hasEvents || hasStarter) && !emptyDay;
@@ -1405,10 +1422,14 @@ function drawChart() {
   const { low, high } = autoRange ? fittedRange : manualPriceRange;
   const y = (n) => top + ((high - n) / (high - low)) * ph,
     futureSlots = 4,
-    step = autoLayout
+    step = horizontalViewport
+      ? pw / (horizontalViewport.to - horizontalViewport.from)
+      : autoLayout
       ? Math.min(32, pw / (visible.length + futureSlots))
       : pw / (visible.length + futureSlots),
-    candleLeft = left + pw - step * (visible.length + futureSlots),
+    candleLeft = horizontalViewport
+      ? left + (barLogicalCenter(visible[0]) - horizontalViewport.from - 0.5) * step
+      : left + pw - step * (visible.length + futureSlots),
     x = (i) => candleLeft + (i + 0.5) * step,
     bw = Math.max(1, Math.min(24, Math.floor(step * 0.84)));
   geometry = {
@@ -1533,21 +1554,12 @@ function drawChart() {
     else lastLabelRight = box.x + box.width;
   }
   if (pendingEventAnimation) {
-    cancelAnimationFrame(animationFrame);
-    animationFrame = requestAnimationFrame(() => {
-      animationFrame = requestAnimationFrame(() => {
-        const pending = pendingEventAnimation;
-        pendingEventAnimation = null;
-        if (pending?.graphId === journal?.id && $("#chart") && geometry)
-          animateEventChart(
-            $("#chart"),
-            visible,
-            geometry,
-            pending.id,
-            journal.settings,
-          );
-      });
-    });
+    const pending = pendingEventAnimation;
+    pendingEventAnimation = null;
+    // Install the initial frame before the next browser paint, so the final
+    // candle cannot flash for two frames and then collapse back to its open.
+    if (pending?.graphId === journal?.id && $("#chart") && geometry)
+      animateEventChart($("#chart"), visible, geometry, pending.id, journal.settings, pending);
   }
   const shortHistory = $("#short-history");
   if (
@@ -1604,6 +1616,7 @@ function goToDate() {
   d.querySelector("form").onsubmit = (e) => {
     e.preventDefault();
     chooseDay(e.currentTarget.elements.date.value);
+    horizontalViewport = null;
     autoRange = false;
     manualPriceRange = null;
     autoLayout = false;
@@ -2130,85 +2143,84 @@ function openDayDetails(date) {
   dialog.querySelector("#detail-note").onclick = () => dayForm(date);
   dialog.querySelector("#detail-add").onclick = () => eventForm(null, date);
 }
-function pan(amount) {
+function barLogicalCenter(bar) {
+  const start = bar.from ?? minuteAt(periodStart(bar.date, interval));
+  return timeToLogical(start, interval) + 0.5;
+}
+function currentLogicalViewport() {
+  if (horizontalViewport) return { ...horizontalViewport };
+  return captureLogicalRange(
+    barLogicalCenter(visible[0]),
+    geometry.x(0),
+    geometry.left,
+    geometry.pw,
+    geometry.step,
+  );
+}
+function setLogicalViewport(next) {
+  // The limits protect calendar iteration; unlike a data-edge clamp, they let
+  // the user move the last candle anywhere on the screen and draw in the future.
+  const lower = timeToLogical(minuteAt("1900-01-01"), interval);
+  const upper = timeToLogical(minuteAt("2200-01-01"), interval);
+  const size = next.to - next.from;
+  let first = observations[0]?.at ?? minuteAt(candles[0]?.date ?? localDate());
+  const starter = journal.settings.starter;
+  if (interval < 1440 && starter?.remaining)
+    first = Math.min(first, Math.min(first, starter.at) - starter.remaining * STARTER_CANDLE_MINUTES);
+  // Keep the first available bar at the right edge when scrolling backwards;
+  // an entirely empty history slice would otherwise remove the drag surface.
+  const earliestFrom = timeToLogical(first, interval) - size + 1;
+  const from = Math.max(lower, earliestFrom, Math.min(upper - size, next.from));
+  horizontalViewport = { from, to: from + size };
   autoLayout = false;
-  clearFocus();
   if (interval < 1440) {
-    intradayEnd = Math.min(maxPanEnd(),
-      (intradayEnd ?? nowMinute()) +
-      Math.sign(amount) *
-        Math.max(
-          interval,
-          Math.round((intradayCount * 0.6) / interval) * interval,
-        ));
-    measureStart = measureEnd = null;
-    drawChart();
-    return;
+    intradayCount = size * interval;
+    intradayEnd = logicalToTime(horizontalViewport.to + 0.5, interval);
+  } else {
+    span = Math.min(36500, Math.max(1, size * interval / 1440));
+    end = dateAt(logicalToTime(horizontalViewport.to - 0.5, interval));
   }
-  if (span === 0) span = journal?.settings.chartDensity ?? 45;
-  const shifted = shiftDate(end, amount);
-  end = shifted > maxPanEnd() ? maxPanEnd() : shifted;
+}
+function pan(amount) {
+  if (!geometry || !visible.length) return;
+  clearFocus();
+  const origin = currentLogicalViewport();
+  const shift = Math.sign(amount) * (origin.to - origin.from) * 0.6;
+  setLogicalViewport({ from: origin.from + shift, to: origin.to + shift });
   measureStart = measureEnd = null;
   drawChart();
 }
 function updateDraggedChart() {
   dragFrame = null;
-  if (!drag) return;
-  const deltaX = drag.clientX - drag.x;
-  const deltaY = drag.clientY - drag.y;
-  const barShift = Math.round((drag.clientX - drag.x) / drag.step);
-  let timelineChanged = false;
-  if (barShift !== drag.lastShift) {
-    drag.lastShift = barShift;
-    if (interval < 1440) {
-      const earliest = minuteAt(candles[0]?.date ?? localDate());
-      const target = Math.min(
-        maxPanEnd(),
-        Math.max(earliest + 1, drag.intradayEnd - barShift * interval),
-      );
-      if (target !== intradayEnd) {
-        intradayEnd = target;
-        timelineChanged = true;
-      }
-    } else {
-      if (span === 0) span = Math.min(3650, visible.length);
-      const shifted = shiftDate(
-        drag.end,
-        -barShift * Math.round(interval / 1440),
-      );
-      const bounds = boundaries();
-      const target = shifted < bounds.earliest
-        ? bounds.earliest
-        : shifted > maxPanEnd()
-          ? maxPanEnd()
-          : shifted;
-      if (target !== end) {
-        end = target;
-        timelineChanged = true;
-      }
-    }
+  if (!drag || !drag.moved) return;
+  const deltaX = (drag.clientX - drag.x) * drag.pixelRatioX;
+  const deltaY = (drag.clientY - drag.y) * drag.pixelRatioY;
+  if (autoRange && drag.mode !== "time-scale" && Math.abs(deltaX) < 0.001) return;
+  if (drag.mode === "time-scale") {
+    setLogicalViewport(zoomLogicalRange(
+      drag.logicalOrigin,
+      Math.exp(-deltaX / drag.plotWidth * 2.5),
+      1,
+      3,
+      Math.min(MAX_BARS, 36500 * 1440 / interval),
+    ));
+  } else {
+    setLogicalViewport(panLogicalRange(drag.logicalOrigin, deltaX, drag.plotWidth));
   }
-  const verticalIntent =
-    drag.pricePanning ||
-    (Math.abs(deltaY) > 10 && Math.abs(deltaY) >= Math.abs(deltaX) * 0.65);
-  const canPanVertically = !autoRange;
-  if (!timelineChanged && !(verticalIntent && canPanVertically)) return;
-  if (verticalIntent && canPanVertically) {
-    drag.pricePanning = true;
+  if (!autoRange && drag.mode !== "time-scale") {
     manualPriceRange = shiftPriceRange(
       drag.priceOrigin,
       deltaY,
       drag.plotHeight,
     );
   }
-  autoLayout = false;
   measureStart = measureEnd = null;
   drawChart();
 }
 function updateDraggedPriceRange() {
   priceDragFrame = null;
   if (!priceDrag || !geometry || autoRange) return;
-  const delta = priceDrag.currentY - priceDrag.y;
+  const delta = (priceDrag.currentY - priceDrag.y) * priceDrag.pixelRatioY;
   manualPriceRange = priceDrag.mode === "scale"
     ? scalePriceRange(priceDrag.origin, Math.exp(delta / priceDrag.plotHeight * 2.5))
     : shiftPriceRange(priceDrag.origin, delta, priceDrag.plotHeight);
@@ -2219,7 +2231,6 @@ function updatePriceWheelScale() {
   if (!geometry || !priceWheelDelta) return;
   const delta = priceWheelDelta;
   priceWheelDelta = 0;
-  if (autoRange) return;
   disableAutoRange();
   manualPriceRange = scalePriceRange(
     manualPriceRange ?? { low: geometry.low, high: geometry.high },
@@ -2228,64 +2239,37 @@ function updatePriceWheelScale() {
   );
   drawChart();
 }
-function zoom(factor) {
-  autoLayout = false;
+function zoom(factor, anchorRatio = 0.5) {
+  if (!geometry || !visible.length) return;
   clearFocus();
   measureStart = measureEnd = null;
-  if (interval < 1440) {
-    intradayCount = Math.max(
-      interval * 7,
-      Math.min(
-        interval * MAX_BARS,
-        Math.round((intradayCount * factor) / interval) * interval,
-      ),
-    );
-    drawChart();
-    return;
-  }
-  const current = span || visible.length;
-  span = Math.max(
-    Math.ceil((interval / 1440) * 3),
-    Math.min(36500, Math.round(current * factor)),
-  );
+  setLogicalViewport(zoomLogicalRange(
+    currentLogicalViewport(), factor, anchorRatio, 3,
+    Math.min(MAX_BARS, 36500 * 1440 / interval),
+  ));
   drawChart();
 }
-function flushChartWheel(timestamp) {
-  if (timestamp - wheelLastDraw < 40) {
-    wheelFrame = requestAnimationFrame(flushChartWheel);
-    return;
-  }
+function flushChartWheel() {
   const delta = wheelDelta;
   const shouldPan = wheelPan;
   wheelDelta = 0;
   wheelPan = false;
-  if (!delta) {
-    wheelFrame = null;
-    return;
-  }
-  if (shouldPan) {
-    wheelRemainder = 0;
-    wheelLastDraw = timestamp;
-    wheelFrame = null;
-    pan(Math.sign(delta) * 3);
-    return;
-  }
-  wheelRemainder += delta;
-  const notches = Math.trunc(wheelRemainder / 100);
-  if (!notches) {
-    wheelFrame = null;
-    return;
-  }
-  wheelRemainder -= notches * 100;
-  wheelLastDraw = timestamp;
   wheelFrame = null;
-  zoom(Math.pow(1.2, notches));
+  if (!delta || !geometry || !visible.length) return;
+  if (shouldPan) {
+    clearFocus();
+    setLogicalViewport(panLogicalRange(currentLogicalViewport(), -delta, geometry.pw));
+    drawChart();
+    return;
+  }
+  zoom(Math.exp(delta * 0.0018), wheelAnchor);
 }
 function bindChart() {
   $("#previous").onclick = () =>
     pan(-Math.max(1, Math.round((span || 30) * 0.6)) * Math.max(1, Math.round(interval / 1440)));
   $("#next").onclick = () => pan(Math.max(1, Math.round((span || 30) * 0.6)) * Math.max(1, Math.round(interval / 1440)));
   $("#today").onclick = () => {
+    horizontalViewport = null;
     autoLayout = false;
     measureStart = measureEnd = null;
     end = localDate();
@@ -2322,20 +2306,22 @@ function bindChart() {
     localizeUI("Включи, чтобы подсвечивать весь промежуток без новых событий. Выключи для выбора одной свечи. В карточке показаны соседние реальные записи."),
   );
   const chart = $("#chart");
+  const touchPointers = new Map();
+  let pinch = null;
   const beginChartDrag = (e) => {
     const hit = candleAtPointer(e);
     clearFocus();
     drag = {
       x: e.clientX,
       y: e.clientY,
-      end,
-      intradayEnd,
-      step: geometry.step,
+      logicalOrigin: currentLogicalViewport(),
+      plotWidth: geometry.pw,
+      pixelRatioX: geometry.width / chart.getBoundingClientRect().width,
+      pixelRatioY: geometry.height / chart.getBoundingClientRect().height,
       clientX: e.clientX,
       clientY: e.clientY,
       priceOrigin: { low: geometry.low, high: geometry.high },
       plotHeight: geometry.ph,
-      lastShift: 0,
       moved: false,
       hit,
     };
@@ -2425,6 +2411,18 @@ function bindChart() {
   });
   chart.addEventListener("pointermove", (e) => {
     if (!visible.length || !geometry) return;
+    if (touchPointers.has(e.pointerId))
+      touchPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pinch && touchPointers.size >= 2) {
+      const [a, b] = [...touchPointers.values()];
+      const distance = Math.max(1, Math.hypot(a.x - b.x, a.y - b.y));
+      const centerX = (a.x + b.x) / 2;
+      const scaled = zoomLogicalRange(pinch.origin, pinch.distance / distance, pinch.anchor, 3,
+        Math.min(MAX_BARS, 36500 * 1440 / interval));
+      setLogicalViewport(panLogicalRange(scaled, (centerX - pinch.centerX) * pinch.pixelRatioX, pinch.width));
+      drawChart();
+      return;
+    }
     const bounds = chart.getBoundingClientRect();
     const pointerX = ((e.clientX - bounds.left) * geometry.width) / bounds.width;
     const pointerY = ((e.clientY - bounds.top) * geometry.height) / bounds.height;
@@ -2435,7 +2433,6 @@ function bindChart() {
       pointerY <= geometry.height - geometry.bottom;
     chart.classList.toggle(
       "price-axis-ready",
-      !autoRange &&
       !drawTool &&
         !measuring &&
         pointerX >= geometry.width - geometry.right &&
@@ -2498,6 +2495,28 @@ function bindChart() {
       xx <= geometry.width - geometry.right &&
       yy >= geometry.top &&
       yy <= geometry.height - geometry.bottom;
+    if (e.pointerType === "touch" && inPlot) {
+      touchPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (touchPointers.size === 2) {
+        e.preventDefault();
+        clearFocus();
+        const [a, b] = [...touchPointers.values()];
+        const centerX = (a.x + b.x) / 2;
+        pinch = {
+          origin: currentLogicalViewport(),
+          distance: Math.max(1, Math.hypot(a.x - b.x, a.y - b.y)),
+          centerX,
+          width: geometry.pw,
+          pixelRatioX: geometry.width / r.width,
+          anchor: ((centerX - r.left) * geometry.width / r.width - geometry.left) / geometry.pw,
+        };
+        if (dragFrame !== null) cancelAnimationFrame(dragFrame);
+        dragFrame = null;
+        drag = null;
+        chart.setPointerCapture(e.pointerId);
+        return;
+      }
+    }
     if (inPlot && (e.button === 1 || (e.button === 0 && e.shiftKey))) {
       e.preventDefault();
       if (autoRange) {
@@ -2510,6 +2529,7 @@ function bindChart() {
         currentY: e.clientY,
         origin: { low: geometry.low, high: geometry.high },
         plotHeight: geometry.ph,
+        pixelRatioY: geometry.height / r.height,
       };
       chart.classList.add("price-axis-dragging", "price-pan-dragging");
       chart.setPointerCapture(e.pointerId);
@@ -2523,7 +2543,7 @@ function bindChart() {
       yy <= geometry.height - geometry.bottom
     ) {
       e.preventDefault();
-      if (autoRange) return;
+      disableAutoRange();
       clearFocus();
       priceDrag = {
         mode: "scale",
@@ -2531,9 +2551,16 @@ function bindChart() {
         currentY: e.clientY,
         origin: { low: geometry.low, high: geometry.high },
         plotHeight: geometry.ph,
+        pixelRatioY: geometry.height / r.height,
       };
       chart.classList.add("price-axis-dragging");
       chart.setPointerCapture(e.pointerId);
+      return;
+    }
+    if (xx >= geometry.left && xx <= geometry.width - geometry.right && yy >= geometry.height - 35) {
+      e.preventDefault();
+      beginChartDrag(e);
+      drag.mode = "time-scale";
       return;
     }
     if (drawTool) {
@@ -2590,9 +2617,16 @@ function bindChart() {
       drawMeasurement();
       return;
     }
-    beginChartDrag(e);
+    if (inPlot) beginChartDrag(e);
   });
   chart.addEventListener("pointerup", (e) => {
+    touchPointers.delete(e.pointerId);
+    if (pinch) {
+      pinch = null;
+      drag = null;
+      if (chart.hasPointerCapture(e.pointerId)) chart.releasePointerCapture(e.pointerId);
+      return;
+    }
     if (priceDrag) {
       priceDrag.currentY = e.clientY;
       if (priceDragFrame !== null) cancelAnimationFrame(priceDragFrame);
@@ -2628,6 +2662,8 @@ function bindChart() {
     }
   });
   chart.addEventListener("pointercancel", () => {
+    touchPointers.clear();
+    pinch = null;
     if (priceDrag) {
       if (priceDragFrame !== null) cancelAnimationFrame(priceDragFrame);
       updateDraggedPriceRange();
@@ -2638,6 +2674,25 @@ function bindChart() {
     dragFrame = null;
     drag = null;
     clearFocus();
+  });
+  chart.addEventListener("dblclick", (e) => {
+    if (!geometry || e.target.closest(".hover-card,.chart-empty")) return;
+    const bounds = chart.getBoundingClientRect();
+    const x = (e.clientX - bounds.left) * geometry.width / bounds.width;
+    const y = (e.clientY - bounds.top) * geometry.height / bounds.height;
+    if (x >= geometry.width - geometry.right && y >= geometry.top && y <= geometry.height - geometry.bottom) {
+      e.preventDefault();
+      autoRange = true;
+      manualPriceRange = null;
+      drawChart();
+    } else if (x >= geometry.left && x <= geometry.width - geometry.right && y >= geometry.height - 35) {
+      e.preventDefault();
+      const scale = { auto: autoRange, range: manualPriceRange };
+      resetViewport();
+      autoRange = scale.auto;
+      manualPriceRange = scale.range;
+      drawChart();
+    }
   });
   chart.addEventListener(
     "wheel",
@@ -2654,10 +2709,6 @@ function bindChart() {
           pointerX >= geometry.width - geometry.right && pointerX <= geometry.width;
         if (overPlotHeight && (overPriceScale || e.ctrlKey)) {
           e.preventDefault();
-          if (autoRange) {
-            priceWheelDelta = 0;
-            return;
-          }
           const pixelDelta = e.deltaY * (e.deltaMode === 1 ? 40 : e.deltaMode === 2 ? chart.clientHeight : 1);
           priceWheelDelta = Math.max(-1000, Math.min(1000, priceWheelDelta + pixelDelta));
           priceWheelAnchor = Math.max(0, Math.min(1, (pointerY - geometry.top) / geometry.ph));
@@ -2667,9 +2718,14 @@ function bindChart() {
         }
       }
       e.preventDefault();
-      const pixelDelta = e.deltaY * (e.deltaMode === 1 ? 40 : e.deltaMode === 2 ? chart.clientHeight : 1);
+      if (!geometry) return;
+      const bounds = chart.getBoundingClientRect();
+      const pointerX = (e.clientX - bounds.left) * geometry.width / bounds.width;
+      wheelAnchor = Math.max(0, Math.min(1, (pointerX - geometry.left) / geometry.pw));
+      const horizontal = Math.abs(e.deltaX) > Math.abs(e.deltaY);
+      const pixelDelta = (horizontal ? e.deltaX : e.deltaY) * (e.deltaMode === 1 ? 40 : e.deltaMode === 2 ? chart.clientHeight : 1);
       wheelDelta = Math.max(-500, Math.min(500, wheelDelta + pixelDelta));
-      wheelPan ||= e.shiftKey;
+      wheelPan ||= e.shiftKey || horizontal;
       if (wheelFrame !== null) return;
       wheelFrame = requestAnimationFrame(flushChartWheel);
     },
@@ -2900,6 +2956,7 @@ function renderJournalList() {
     (b) =>
       (b.onclick = () => {
         chooseDay(b.dataset.openDay);
+        horizontalViewport = null;
         autoRange = false;
         manualPriceRange = null;
         autoLayout = false;
@@ -3312,6 +3369,7 @@ async function randomEvent(e) {
     }
     await commit(next);
     selected = date;
+    horizontalViewport = null;
     autoRange = false;
     manualPriceRange = null;
     autoLayout = false;
@@ -3433,7 +3491,7 @@ async function recordQuickMove(direction) {
       return next;
     });
     pendingEventAnimation =
-      view === "chart" && eventId ? { graphId: journal.id, id: eventId } : null;
+      view === "chart" && eventId ? { graphId: journal.id, id: eventId, fromValue: valueFrom } : null;
     if (journal.settings.followEvent !== false) {
       resetViewport();
       autoRange = false;
@@ -3697,11 +3755,15 @@ function eventForm(id = null, date = localDate()) {
               : localizeUI("Дата всё ещё в будущем. Нажми ещё один раз, чтобы сохранить эту запись."),
           );
       }
+      const at = minuteAt(fields.date, minuteOf(fields.time));
+      const previousBar = visible.find(c => c.recorded && (interval < 1440
+        ? Math.floor((c.from ?? minuteAt(c.date, c.startMinute ?? minuteOf(c.time ?? "00:00"))) / interval) === Math.floor(at / interval)
+        : c.date === periodStart(fields.date, interval)));
       const next = upsertEvent(journal, fields, id);
       await commit(next);
       pendingEventAnimation =
         view === "chart"
-          ? { graphId: journal.id, id: existing?.id ?? next.events.at(-1).id }
+          ? { graphId: journal.id, id: existing?.id ?? next.events.at(-1).id, fromValue: previousBar?.close }
           : null;
       if (journal.settings.followEvent !== false) {
         resetViewport();

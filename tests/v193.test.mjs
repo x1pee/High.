@@ -74,7 +74,9 @@ test("minute history remains visible after last event, never invents events befo
   assert.equal(later.length, 60);
   assert(later.every((b) => !b.recorded && !b.events.length && b.realDelta === 0));
   assert(later.some((b) => b.close !== b.open));
-  assert.equal(later[0].open, 105);
+  // A crop in the middle of a multi-day visual gap must keep the same path,
+  // rather than introduce a new flat anchor at its viewport/day boundary.
+  assert(Math.abs(later[0].open - 105) <= 2.5);
   assert.equal(later.at(-1).close, 105);
 });
 test("visual rhythm never crosses positive floor near zero", () => {

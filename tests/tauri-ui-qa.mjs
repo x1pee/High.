@@ -87,10 +87,10 @@ try {
       await page.screenshot({path: path.join(shots, 'starter.png'), fullPage:true});
       await page.locator('#updates').click();
       await page.waitForSelector('#release-history .release-row');
-      assert.equal(await page.locator('[data-current-version]').innerText(), 'High. 2.0.0.1');
+      assert.equal(await page.locator('[data-current-version]').innerText(), 'High. 2.0.0.2');
       assert.ok(await page.locator('#release-history .release-row').count() >= 8);
-      assert.equal(await page.locator('#release-history .release-row').first().locator('b').innerText(), '2.0.0.1');
-      assert.equal(await page.locator('#release-history .release-row').nth(1).locator('b').innerText(), '2.0.0');
+      assert.equal(await page.locator('#release-history .release-row').first().locator('b').innerText(), '2.0.0.2');
+      assert.equal(await page.locator('#release-history .release-row').nth(1).locator('b').innerText(), '2.0.0.1');
       await page.locator('dialog[open]').screenshot({path:path.join(shots, 'release-history.png')});
       await page.locator('dialog[open] .modal-close').click();
       await page.locator('#settings').click();
@@ -308,6 +308,8 @@ try {
       const afterFuturePan = await lastRecorded().boundingBox();
       assert.equal(await page.locator('#chart').getAttribute('data-scale'), 'auto', 'horizontal panning must preserve Auto');
       assert.ok(afterFuturePan.x < beforeFuturePan.x - 25, 'dragging left should move the recorded chart left and reveal future space on the right');
+      assert.ok(Math.abs(afterFuturePan.x - beforeFuturePan.x + chartBox.width * 0.30) < 1.5, 'candles must follow a horizontal drag pixel for pixel, including the fractional bar offset');
+      assert.ok(Math.abs(afterFuturePan.width - beforeFuturePan.width) < 0.1, 'panning must preserve horizontal candle spacing');
       assert.ok(await futureBars().count() > emptyBarsBefore, 'future bars should be visibly empty, flat, and unrecorded');
       await page.locator('#auto-range').click();
       await page.waitForFunction(() => document.querySelector('#chart')?.dataset.scale === 'manual');
@@ -319,6 +321,23 @@ try {
       await page.waitForTimeout(60);
       const afterUnlockedVerticalPan = await lastRecorded().boundingBox();
       assert.ok(afterUnlockedVerticalPan.y > beforeUnlockedVerticalPan.y + 20, 'vertical panning should work after Auto is turned off');
+      assert.ok(Math.abs(afterUnlockedVerticalPan.y - beforeUnlockedVerticalPan.y - 42) < 1, 'manual vertical panning follows the pointer pixel for pixel');
+      const beforeDiagonalPan = await lastRecorded().boundingBox();
+      await page.mouse.move(panX, panY);
+      await page.mouse.down();
+      await page.mouse.move(panX + 17.5, panY + 8.25, { steps: 8 });
+      await page.mouse.up();
+      await page.waitForTimeout(60);
+      const afterDiagonalPan = await lastRecorded().boundingBox();
+      assert.ok(Math.abs(afterDiagonalPan.x - beforeDiagonalPan.x - 17.5) < 1.5, 'diagonal drags must preserve fractional horizontal movement');
+      assert.ok(Math.abs(afterDiagonalPan.y - beforeDiagonalPan.y - 8.25) < 1.5, 'diagonal drags must not suppress a small vertical component');
+      const beforeAnchorZoom = await lastRecorded().boundingBox();
+      const anchorX = beforeAnchorZoom.x + beforeAnchorZoom.width / 2;
+      await page.mouse.move(anchorX, chartBox.y + 28);
+      await page.mouse.wheel(0, -55);
+      await page.waitForTimeout(100);
+      const afterAnchorZoom = await lastRecorded().boundingBox();
+      assert.ok(Math.abs(afterAnchorZoom.x + afterAnchorZoom.width / 2 - anchorX) < 1.5, 'wheel zoom keeps the same candle under the pointer instead of pulling toward the last point');
       await page.locator('#auto-range').click();
       await page.waitForFunction(() => document.querySelector('#chart')?.dataset.scale === 'auto');
       const priceScaleBox = await page.locator('#chart').boundingBox();
@@ -333,13 +352,7 @@ try {
       await page.mouse.move(priceScaleBox.x + priceScaleBox.width - 18, priceScaleBox.y + priceScaleBox.height * 0.42);
       await page.mouse.wheel(0, 300);
       await page.waitForTimeout(80);
-      assert.equal(await page.locator('#chart').getAttribute('data-scale'), 'auto', 'Auto must block manual vertical scaling too');
-      assert.ok(Math.abs((await candleSpread()) - beforePriceZoom) < 0.1, 'vertical wheel scaling should not alter candles while Auto is on');
-      await page.locator('#auto-range').click();
-      await page.waitForFunction(() => document.querySelector('#chart')?.dataset.scale === 'manual');
-      await page.mouse.move(priceScaleBox.x + priceScaleBox.width - 18, priceScaleBox.y + priceScaleBox.height * 0.42);
-      await page.mouse.wheel(0, 300);
-      await page.waitForTimeout(80);
+      assert.equal(await page.locator('#chart').getAttribute('data-scale'), 'manual', 'explicit price-scale adjustment switches Auto off like TradingView');
       assert.ok(await candleSpread() < beforePriceZoom, 'wheel over the right price scale should zoom out vertically');
       const beforeAxisDrag = await candleSpread();
       const axisX = priceScaleBox.x + priceScaleBox.width - 18;
@@ -357,7 +370,7 @@ try {
       await page.mouse.up();
       await page.waitForTimeout(80);
       assert.ok(await candleSpread() < afterAxisUp / 1.1, 'dragging the price axis down compresses candle heights');
-      await page.locator('#auto-range').click();
+      await page.mouse.dblclick(axisX, axisY);
       await page.waitForFunction(() => document.querySelector('#chart')?.dataset.scale === 'auto');
       await page.mouse.move(5, 5);
       await page.waitForTimeout(480);
@@ -458,6 +471,25 @@ try {
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
     }
     if (mobile) {
+      await page.locator('[data-interval="60"]').click();
+      const box = await page.locator('#chart').boundingBox();
+      const candleSpacing = () => page.locator('#chart .chart-candle').evaluateAll(nodes => {
+        const a = nodes[0].getBoundingClientRect(), b = nodes[1].getBoundingClientRect();
+        return b.x + b.width / 2 - a.x - a.width / 2;
+      });
+      const beforePinch = await candleSpacing();
+      const touch = await context.newCDPSession(page);
+      await touch.send('Emulation.setTouchEmulationEnabled', {enabled:true});
+      const center = box.x + box.width * .45, y = box.y + box.height * .3;
+      await touch.send('Input.dispatchTouchEvent', {type:'touchStart', touchPoints:[{id:0,x:center-30,y},{id:1,x:center+30,y}]});
+      for (let n = 1; n <= 6; n++) {
+        await touch.send('Input.dispatchTouchEvent', {type:'touchMove', touchPoints:[{id:0,x:center-30-n*5,y},{id:1,x:center+30+n*5,y}]});
+      }
+      await touch.send('Input.dispatchTouchEvent', {type:'touchEnd', touchPoints:[]});
+      await page.waitForTimeout(100);
+      const afterPinch = await candleSpacing();
+      assert.ok(Math.abs(afterPinch / beforePinch - 2) < .05, 'two-finger pinch stretches candle spacing around the fingers without a pan jump');
+      await touch.detach();
       assert.equal(await page.locator('.titlebar').isVisible(), false);
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
     }

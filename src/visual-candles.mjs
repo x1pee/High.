@@ -1,12 +1,18 @@
 // Presentation only: decorative extrema never enter events, totals or storage.
 export function visualCandle(c) {
   if (c.future || (!c.recorded && !c.synthetic)) return c;
+  // Intraday visual gaps already sample a curve whose full range is bounded by
+  // the last real impulse. A level-based extra wick could dwarf a tiny event.
+  if (c.intraday && c.synthetic && !c.recorded && !c.starter)
+    return { ...c, decorativeExtrema: true };
   let seed = 2166136261;
   for (const ch of `${c.date}|${c.time ?? ''}|${c.open}|${c.close}`)
     seed = Math.imul(seed ^ ch.charCodeAt(0), 16777619) >>> 0;
   const body = Math.abs(c.close - c.open);
   const unit = Math.max(Math.abs(c.open), Math.abs(c.close), 0.01);
-  const tail = Math.max(body * 0.16, unit * 0.0007);
+  const tail = c.recorded
+    ? Math.max(body, c.high - c.low) * 0.16
+    : Math.max(body * 0.16, unit * 0.0007);
   const upper = tail * (0.65 + (seed % 101) / 100);
   const lower = tail * (0.65 + ((seed >>> 8) % 101) / 100);
   return {

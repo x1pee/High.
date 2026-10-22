@@ -1,4 +1,5 @@
 export const ENGLISH_RELEASE_NOTES = {
+  "2.0.0.2": "Smooth chart panning and anchored scaling. Bounded visual trends return to the real price before each entry. New entries animate only the current candle, without replaying history or overshooting their real impact.",
   "2.0.0.1": "Visual candles fill empty days without changing your journal. Candle wicks, price-axis drag scaling, and correct total colors during quick-move animations.",
   "2.0.0": "English and Russian interface, flexible chart navigation, animated quick moves, and encrypted manual sync. Private GitHub updates require manual download; mobile builds are still in testing.",
   '1.9.9.19': 'The Windows app is distributed as a portable EXE. Signed updates replace the app file while keeping your journal in its existing local profile.',
